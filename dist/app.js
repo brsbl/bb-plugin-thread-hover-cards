@@ -509,6 +509,7 @@ var HOVER_CARD_CSS = String.raw`
 .bb-thread-hover-card__reasoning {
   flex: none;
   color: color-mix(in srgb, var(--muted-foreground) 76%, transparent);
+  font-size: 0.625rem;
   white-space: nowrap;
 }
 
@@ -558,11 +559,11 @@ var HOVER_CARD_CSS = String.raw`
   min-width: 0;
   overflow: hidden;
   color: color-mix(in srgb, var(--foreground) 88%, transparent);
-  font-size: 0.8125rem;
+  font-size: 0.78125rem;
   font-weight: 350;
-  line-height: 1.45;
+  line-height: 1.4;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
 }
 
 .bb-thread-hover-card__provider-icon {
@@ -585,11 +586,11 @@ var HOVER_CARD_CSS = String.raw`
 .bb-thread-hover-card__context {
   width: 100%;
   flex-wrap: nowrap;
-  gap: 0.5rem;
-  margin-top: 0.375rem;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
   overflow: hidden;
   color: var(--muted-foreground);
-  font-size: 0.6875rem;
+  font-size: 0.65625rem;
   white-space: nowrap;
 }
 
@@ -647,6 +648,8 @@ var HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__meta-icon {
+  width: 0.75rem;
+  height: 0.75rem;
   color: color-mix(in srgb, var(--muted-foreground) 78%, transparent);
 }
 
@@ -672,18 +675,23 @@ var HOVER_CARD_CSS = String.raw`
 .bb-thread-hover-card__access {
   flex: none;
   color: color-mix(in srgb, var(--muted-foreground) 76%, transparent);
+  font-size: 0.625rem;
   white-space: nowrap;
 }
 
 .bb-thread-hover-card__access[data-permission-mode="full"] {
-  color: var(--warning-text, var(--warning));
+  color: color-mix(
+    in srgb,
+    var(--warning-text, var(--warning)) 78%,
+    var(--muted-foreground)
+  );
 }
 
 .bb-thread-hover-card__pr-link {
   display: inline-flex;
   min-width: 0;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.1875rem;
   border-radius: 0.25rem;
   color: var(--foreground);
   outline: none;
@@ -732,12 +740,12 @@ var HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__pr-status {
   flex: none;
-  padding: 0.0625rem 0.3125rem;
+  padding: 0.03125rem 0.25rem;
   border: 1px solid transparent;
   border-radius: 999px;
   background: color-mix(in srgb, var(--muted-foreground) 7%, transparent);
   color: var(--muted-foreground);
-  font-size: 0.625rem;
+  font-size: 0.5625rem;
   font-weight: 500;
   line-height: 1.35;
 }
@@ -764,9 +772,9 @@ var HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__link-icon {
   flex: none;
-  width: 0.8125rem;
-  height: 0.8125rem;
-  color: var(--muted-foreground);
+  width: 0.75rem;
+  height: 0.75rem;
+  color: color-mix(in srgb, var(--muted-foreground) 82%, transparent);
 }
 
 .bb-thread-hover-card__loading {

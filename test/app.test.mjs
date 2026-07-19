@@ -141,6 +141,10 @@ assert.match(
 );
 assert.match(
   style.textContent,
+  /\.bb-thread-hover-card__message[\s\S]*?-webkit-line-clamp: 2/,
+);
+assert.match(
+  style.textContent,
   /\.bb-thread-hover-card__time-icon\[data-tone="success"\][\s\S]*?var\(--success\)/,
 );
 assert.match(
