@@ -14661,7 +14661,7 @@ function plugin(bb) {
         executionOptions,
         providers,
         providerModels,
-        threadOutput,
+        conversationOutline,
         turnStartedAt
       ] = await Promise.all([
         safely(bb.sdk.projects.get({ projectId: thread.projectId })),
@@ -14689,7 +14689,7 @@ function plugin(bb) {
             } : { providerId: thread.providerId }
           )
         ),
-        safely(bb.sdk.threads.output({ threadId })),
+        safely(bb.sdk.threads.conversationOutline({ threadId })),
         currentTurnStartedAt(
           bb,
           threadId,
@@ -14700,8 +14700,9 @@ function plugin(bb) {
       const provider = providers?.find(
         (candidate) => candidate.id === thread.providerId
       );
+      const latestAssistantPreview = conversationOutline?.items.filter((item) => item.role === "assistant").at(-1)?.preview;
       const normalizedAssistantMessage = normalizeMessage(
-        threadOutput?.output ?? ""
+        latestAssistantPreview ?? ""
       );
       const selectedModel = executionOptions?.model;
       const model = [

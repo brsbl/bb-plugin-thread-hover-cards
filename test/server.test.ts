@@ -9,8 +9,8 @@ type SummaryHandler = (input: {
 let summaryHandler: SummaryHandler | undefined;
 const logMessages: string[] = [];
 let displayStatus: "active" | "idle" = "active";
-let outputCalls = 0;
-let assistantOutput = "  Finished   the hover card \n polish.  ";
+let outlineCalls = 0;
+let assistantPreview = "  Finished   the hover card \n polish.  ";
 let timelineAnchorSeq: number | null = 10;
 let timelineMaxSeq = 20;
 let threadEvents = [
@@ -101,6 +101,26 @@ const fakeBb = {
       },
     },
     threads: {
+      async conversationOutline() {
+        outlineCalls += 1;
+        return {
+          items: [
+            {
+              attachmentSummary: null,
+              id: "assistant_1",
+              preview: assistantPreview,
+              role: "assistant",
+            },
+            {
+              attachmentSummary: null,
+              id: "user_1",
+              preview: "A later user row must not replace agent output.",
+              role: "user",
+            },
+          ],
+          maxSeq: 20,
+        };
+      },
       async defaultExecutionOptions() {
         return {
           model: "gpt-5.6-sol",
@@ -128,10 +148,6 @@ const fakeBb = {
           runtime: { displayStatus },
           updatedAt: 123,
         };
-      },
-      async output() {
-        outputCalls += 1;
-        return { output: assistantOutput };
       },
       async timeline() {
         return {
@@ -188,7 +204,7 @@ assert.deepEqual(summary, {
 assert.equal("permissionMode" in summary.provider, false);
 assert.equal(summary.permissionMode, "full");
 assert.equal("contextWindowUsage" in summary, false);
-assert.equal(outputCalls, 1);
+assert.equal(outlineCalls, 1);
 assert.deepEqual(eventListInputs, [
   { afterSeq: "9", limit: "256", threadId: "thr_1" },
 ]);
@@ -260,12 +276,12 @@ assert.equal(
   "Finished the hover card\npolish.",
 );
 assert.equal(idleSummary.status, "idle");
-assert.equal(outputCalls, 5);
+assert.equal(outlineCalls, 5);
 
-assistantOutput = " \n\t ";
+assistantPreview = " \n\t ";
 const blankIdleSummary = await summaryHandler({ threadId: "thr_1" });
 assert.equal(blankIdleSummary.latestAssistantMessage, null);
-assert.equal(outputCalls, 6);
+assert.equal(outlineCalls, 6);
 assert.deepEqual(logMessages, ["Thread hover cards loaded."]);
 assert.deepEqual(
   markdownPreview(

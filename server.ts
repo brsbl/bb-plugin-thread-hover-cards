@@ -188,7 +188,7 @@ export default function plugin(bb: BbPluginApi): void {
         executionOptions,
         providers,
         providerModels,
-        threadOutput,
+        conversationOutline,
         turnStartedAt,
       ] =
         await Promise.all([
@@ -225,7 +225,7 @@ export default function plugin(bb: BbPluginApi): void {
                 : { providerId: thread.providerId },
             ),
           ),
-          safely(bb.sdk.threads.output({ threadId })),
+          safely(bb.sdk.threads.conversationOutline({ threadId })),
           currentTurnStartedAt(
             bb,
             threadId,
@@ -238,8 +238,11 @@ export default function plugin(bb: BbPluginApi): void {
       const provider = providers?.find(
         (candidate) => candidate.id === thread.providerId,
       );
+      const latestAssistantPreview = conversationOutline?.items
+        .filter((item) => item.role === "assistant")
+        .at(-1)?.preview;
       const normalizedAssistantMessage = normalizeMessage(
-        threadOutput?.output ?? "",
+        latestAssistantPreview ?? "",
       );
       const selectedModel = executionOptions?.model;
       const model = [
