@@ -14553,6 +14553,7 @@ var pullRequestSummarySchema = external_exports.discriminatedUnion("kind", [
 var threadSummarySchema = external_exports.object({
   currentTurnStartedAt: external_exports.number().nullable(),
   latestAssistantMessage: external_exports.string().nullable(),
+  permissionMode: external_exports.enum(["full", "readonly", "workspace-write"]).nullable(),
   pullRequest: pullRequestSummarySchema,
   provider: external_exports.object({
     displayName: external_exports.string(),
@@ -14729,6 +14730,7 @@ function plugin(bb) {
       return {
         currentTurnStartedAt: turnStartedAt,
         latestAssistantMessage: normalizedAssistantMessage || null,
+        permissionMode: executionOptions?.permissionMode ?? null,
         pullRequest,
         provider: {
           displayName: provider?.displayName ?? thread.providerId,

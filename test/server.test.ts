@@ -160,6 +160,7 @@ const summary = await summaryHandler({ threadId: "thr_1" });
 assert.deepEqual(summary, {
   currentTurnStartedAt: 100,
   latestAssistantMessage: "Finished the hover card\npolish.",
+  permissionMode: "full",
   pullRequest: {
     kind: "available",
     number: 42,
@@ -185,6 +186,7 @@ assert.deepEqual(summary, {
   updatedAt: 123,
 });
 assert.equal("permissionMode" in summary.provider, false);
+assert.equal(summary.permissionMode, "full");
 assert.equal("contextWindowUsage" in summary, false);
 assert.equal(outputCalls, 1);
 assert.deepEqual(eventListInputs, [

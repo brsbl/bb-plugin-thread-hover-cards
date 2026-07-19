@@ -56,6 +56,11 @@ globalThis.fetch = async (_url, init) => {
           : hasNoPullRequest
             ? null
             : "**Agent update**—implementing concise hover cards for foo_bar_baz and \\_literal\\_",
+        permissionMode: isLocal
+          ? "readonly"
+          : isDraftPullRequest
+            ? "workspace-write"
+            : "full",
         pullRequest:
           isLocal || hasNoPullRequest
             ? { kind: "absent" }
@@ -150,6 +155,10 @@ assert.doesNotMatch(style.textContent, /--font-mono/);
 assert.match(style.textContent, /\.bb-thread-hover-card__context/);
 assert.match(
   style.textContent,
+  /\.bb-thread-hover-card__context \{[\s\S]*?width: 100%;[\s\S]*?flex-wrap: nowrap;/,
+);
+assert.match(
+  style.textContent,
   /\.bb-thread-hover-card__project[\s\S]*?max-width: 38%;[\s\S]*?flex: 0 1 auto/,
 );
 assert.match(
@@ -158,9 +167,17 @@ assert.match(
 );
 assert.match(
   style.textContent,
+  /\.bb-thread-hover-card__branch \{[\s\S]*?min-width: 0;/,
+);
+assert.match(
+  style.textContent,
   /\.bb-thread-hover-card__branch-name,[\s\S]*?text-overflow: ellipsis/,
 );
 assert.match(style.textContent, /\.bb-thread-hover-card__pr-status/);
+assert.match(
+  style.textContent,
+  /\.bb-thread-hover-card__access \{[\s\S]*?flex: none;[\s\S]*?white-space: nowrap/,
+);
 assert.match(
   style.textContent,
   /\.bb-thread-hover-card__pr \{[\s\S]*?flex: none;[\s\S]*?overflow: visible/,
@@ -231,7 +248,8 @@ assert.equal(card.querySelector(".bb-thread-hover-card__inline-emphasis"), null)
 assert.match(card.textContent, /5\.6-Sol/);
 assert.match(card.textContent, /Extra High/);
 assert.doesNotMatch(card.textContent, /gpt-5\.6-sol/);
-assert.doesNotMatch(card.textContent, /Full Access|Context window|82%/);
+assert.match(card.textContent, /Full access/);
+assert.doesNotMatch(card.textContent, /Context window|82%/);
 assert.match(card.textContent, /acme\/bb/);
 assert.match(card.textContent, /#42Checks passing/);
 assert.doesNotMatch(card.textContent, /Latest request/i);
@@ -305,7 +323,16 @@ assert.deepEqual(
     "bb-thread-hover-card__project",
     "bb-thread-hover-card__branch",
     "bb-thread-hover-card__pr",
+    "bb-thread-hover-card__access",
   ],
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__access")?.dataset.permissionMode,
+  "full",
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__access")?.getAttribute("aria-label"),
+  "Permission: Full access",
 );
 assert.equal(
   card
@@ -499,6 +526,14 @@ assert.ok(card.querySelector(".bb-thread-hover-card__inline-code"));
 assert.ok(card.querySelector('[data-icon="LaptopIcon"]'));
 assert.ok(card.querySelector('[data-icon="CheckmarkCircle02Icon"]'));
 assert.equal(
+  card.querySelector(".bb-thread-hover-card__access")?.textContent,
+  "Read only",
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__access")?.parentElement,
+  card.querySelector(".bb-thread-hover-card__local"),
+);
+assert.equal(
   card.querySelector(".bb-thread-hover-card__status-icon")?.dataset.tone,
   "success",
 );
@@ -566,6 +601,10 @@ assert.equal(
 assert.equal(
   card.querySelector(".bb-thread-hover-card__pr-status")?.dataset.state,
   "draft",
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__access")?.textContent,
+  "Workspace write",
 );
 assert.deepEqual(requestBodies, [
   { threadId: "thr_1" },

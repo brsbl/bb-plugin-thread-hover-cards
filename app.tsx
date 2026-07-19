@@ -254,6 +254,26 @@ function formatModelLabel(value: string, providerId: string): string {
   return formatted;
 }
 
+function permissionLabel(
+  permissionMode: ThreadSummary["permissionMode"],
+): string | null {
+  if (permissionMode === "full") return "Full access";
+  if (permissionMode === "workspace-write") return "Workspace write";
+  if (permissionMode === "readonly") return "Read only";
+  return null;
+}
+
+function permissionMetadata(summary: ThreadSummary): HTMLSpanElement | null {
+  const label = permissionLabel(summary.permissionMode);
+  if (!label) return null;
+
+  const access = element("span", "bb-thread-hover-card__access", label);
+  access.dataset.permissionMode = summary.permissionMode!;
+  access.setAttribute("aria-label", `Permission: ${label}`);
+  access.title = `Permission: ${label}`;
+  return access;
+}
+
 interface InlinePattern {
   match: RegExpMatchArray;
   type: "code" | "emphasis" | "image" | "link" | "strike" | "strong";
@@ -622,6 +642,10 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
       pullRequest.append(pullRequestLink);
       context.append(pullRequest);
     }
+    if (summary.repository.isGitRepository) {
+      const access = permissionMetadata(summary);
+      if (access) context.append(access);
+    }
     content.push(context);
   }
 
@@ -650,6 +674,8 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
       ),
       localPath,
     );
+    const access = permissionMetadata(summary);
+    if (access) local.append(access);
     content.push(local);
   }
 

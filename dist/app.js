@@ -457,6 +457,7 @@ var HOVER_CARD_CSS = String.raw`
 .bb-thread-hover-card__branch,
 .bb-thread-hover-card__local,
 .bb-thread-hover-card__pr,
+.bb-thread-hover-card__access,
 .bb-thread-hover-card__meta {
   display: flex;
   min-width: 0;
@@ -597,6 +598,8 @@ var HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__context {
+  width: 100%;
+  flex-wrap: nowrap;
   gap: 0.5rem;
   margin-top: 0.375rem;
   overflow: hidden;
@@ -624,6 +627,7 @@ var HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__branch {
   flex: 1 1 4rem;
+  min-width: 0;
 }
 
 .bb-thread-hover-card__project-name,
@@ -643,6 +647,8 @@ var HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__local {
+  width: 100%;
+  flex-wrap: nowrap;
   gap: 0.375rem;
   margin-top: 0.3125rem;
   overflow: hidden;
@@ -676,6 +682,12 @@ var HOVER_CARD_CSS = String.raw`
   flex: none;
   align-items: center;
   overflow: visible;
+}
+
+.bb-thread-hover-card__access {
+  flex: none;
+  color: color-mix(in srgb, var(--muted-foreground) 88%, transparent);
+  white-space: nowrap;
 }
 
 .bb-thread-hover-card__pr-link {
@@ -1079,6 +1091,21 @@ function formatModelLabel(value, providerId) {
   }
   return formatted;
 }
+function permissionLabel(permissionMode) {
+  if (permissionMode === "full") return "Full access";
+  if (permissionMode === "workspace-write") return "Workspace write";
+  if (permissionMode === "readonly") return "Read only";
+  return null;
+}
+function permissionMetadata(summary) {
+  const label = permissionLabel(summary.permissionMode);
+  if (!label) return null;
+  const access = element("span", "bb-thread-hover-card__access", label);
+  access.dataset.permissionMode = summary.permissionMode;
+  access.setAttribute("aria-label", `Permission: ${label}`);
+  access.title = `Permission: ${label}`;
+  return access;
+}
 function nextInlinePattern(source) {
   const patterns = [
     ["image", /!\[([^\]]*)\]\([^)]+\)/],
@@ -1388,6 +1415,10 @@ function renderSummary(card, summary) {
       pullRequest.append(pullRequestLink);
       context.append(pullRequest);
     }
+    if (summary.repository.isGitRepository) {
+      const access = permissionMetadata(summary);
+      if (access) context.append(access);
+    }
     content.push(context);
   }
   if (!summary.repository.isGitRepository) {
@@ -1411,6 +1442,8 @@ function renderSummary(card, summary) {
       ),
       localPath
     );
+    const access = permissionMetadata(summary);
+    if (access) local.append(access);
     content.push(local);
   }
   card.replaceChildren(...content);

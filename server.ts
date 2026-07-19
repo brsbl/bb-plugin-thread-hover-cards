@@ -31,6 +31,9 @@ export const threadSummarySchema = z
   .object({
     currentTurnStartedAt: z.number().nullable(),
     latestAssistantMessage: z.string().nullable(),
+    permissionMode: z
+      .enum(["full", "readonly", "workspace-write"])
+      .nullable(),
     pullRequest: pullRequestSummarySchema,
     provider: z
       .object({
@@ -275,6 +278,7 @@ export default function plugin(bb: BbPluginApi): void {
       return {
         currentTurnStartedAt: turnStartedAt,
         latestAssistantMessage: normalizedAssistantMessage || null,
+        permissionMode: executionOptions?.permissionMode ?? null,
         pullRequest,
         provider: {
           displayName: provider?.displayName ?? thread.providerId,
