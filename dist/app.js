@@ -1193,7 +1193,7 @@ function refreshRunTime(card) {
     const endedAt = runtime2.dataset.turnEndedAt ? Number(runtime2.dataset.turnEndedAt) : Date.now();
     const value = runTime(timestamp, endedAt);
     runtime2.querySelector("[data-time-value]").textContent = value;
-    runtime2.title = runtime2.dataset.turnEndedAt ? `Completed in ${value}` : `Run time ${value}`;
+    runtime2.title = runtime2.dataset.turnEndedAt ? `Total agent time ${value}` : `Run time ${value}`;
   }
 }
 function formatModelLabel(value, providerId) {
@@ -1431,11 +1431,14 @@ function renderSummary(card, summary) {
   header.append(provider);
   const runtimeStatus = statusPresentation(summary.status);
   const times = element("div", "bb-thread-hover-card__times");
-  if (summary.currentTurnStartedAt !== null) {
+  const isDone = summary.status === "idle";
+  const hasReliableRuntime = summary.currentTurnStartedAt !== null && (!isDone || summary.currentTurnCompletedAt !== null);
+  if (hasReliableRuntime) {
     const runtime2 = element("span", "bb-thread-hover-card__runtime");
     runtime2.dataset.turnStartedAt = String(summary.currentTurnStartedAt);
-    const isDone = summary.status === "idle";
-    if (isDone) runtime2.dataset.turnEndedAt = String(summary.updatedAt);
+    if (summary.currentTurnCompletedAt !== null) {
+      runtime2.dataset.turnEndedAt = String(summary.currentTurnCompletedAt);
+    }
     const runtimeValue = element("span", "bb-thread-hover-card__time-value");
     runtimeValue.dataset.timeValue = "";
     const usesThreadStatusIcon = (runtimeStatus.animated || isDone) && runtimeStatus.icon !== null && runtimeStatus.iconName !== null;
@@ -1453,7 +1456,11 @@ function renderSummary(card, summary) {
     }
     runtime2.append(
       runtimeIcon,
-      element("span", "bb-thread-hover-card__sr-only", "Run time "),
+      element(
+        "span",
+        "bb-thread-hover-card__sr-only",
+        isDone ? "Total agent time " : "Run time "
+      ),
       runtimeValue
     );
     times.append(runtime2);

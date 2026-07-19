@@ -13,6 +13,11 @@ let outlineCalls = 0;
 let assistantPreview = "  Finished   the hover card \n polish.  ";
 let timelineAnchorSeq: number | null = 10;
 let timelineMaxSeq = 20;
+let timelineRows: Array<{
+  completedAt: number | null;
+  kind: "turn";
+  startedAt: number;
+}> = [];
 let threadEvents = [
   {
     createdAt: 100,
@@ -157,6 +162,7 @@ const fakeBb = {
             usedTokens: 82_000,
           },
           maxSeq: timelineMaxSeq,
+          rows: timelineRows,
           timelinePage: {
             olderCursor:
               timelineAnchorSeq === null
@@ -174,6 +180,7 @@ assert.ok(summaryHandler, "registers the threadSummary RPC handler");
 
 const summary = await summaryHandler({ threadId: "thr_1" });
 assert.deepEqual(summary, {
+  currentTurnCompletedAt: null,
   currentTurnStartedAt: 100,
   latestAssistantMessage: "Finished the hover card\npolish.",
   permissionMode: "full",
@@ -199,7 +206,6 @@ assert.deepEqual(summary, {
     path: "/workspace/thread-hover-cards",
   },
   status: "active",
-  updatedAt: 123,
 });
 assert.equal("permissionMode" in summary.provider, false);
 assert.equal(summary.permissionMode, "full");
@@ -258,6 +264,13 @@ assert.deepEqual(eventListInputs, [
 ]);
 
 displayStatus = "idle";
+timelineRows = [
+  {
+    completedAt: 220,
+    kind: "turn",
+    startedAt: 100,
+  },
+];
 threadEvents = [
   {
     createdAt: 100,
@@ -271,6 +284,7 @@ threadEvents = [
 ];
 const idleSummary = await summaryHandler({ threadId: "thr_1" });
 assert.equal(idleSummary.currentTurnStartedAt, 100);
+assert.equal(idleSummary.currentTurnCompletedAt, 220);
 assert.equal(
   idleSummary.latestAssistantMessage,
   "Finished the hover card\npolish.",
@@ -279,8 +293,34 @@ assert.equal(idleSummary.status, "idle");
 assert.equal(outlineCalls, 5);
 
 assistantPreview = " \n\t ";
+timelineRows = [];
+threadEvents = [
+  {
+    createdAt: 300,
+    data: { providerThreadId: "provider_1" },
+    id: "event_idle_turn_fallback",
+    scope: { kind: "turn" as const, turnId: "turn_idle_fallback" },
+    seq: 12_002,
+    threadId: "thr_1",
+    type: "turn/started" as const,
+  },
+  {
+    createdAt: 480,
+    data: {
+      providerThreadId: "provider_1",
+      status: "completed" as const,
+    },
+    id: "event_idle_turn_completed_fallback",
+    scope: { kind: "turn" as const, turnId: "turn_idle_fallback" },
+    seq: 12_003,
+    threadId: "thr_1",
+    type: "turn/completed" as const,
+  },
+];
 const blankIdleSummary = await summaryHandler({ threadId: "thr_1" });
 assert.equal(blankIdleSummary.latestAssistantMessage, null);
+assert.equal(blankIdleSummary.currentTurnStartedAt, 300);
+assert.equal(blankIdleSummary.currentTurnCompletedAt, 480);
 assert.equal(outlineCalls, 6);
 assert.deepEqual(logMessages, ["Thread hover cards loaded."]);
 assert.deepEqual(

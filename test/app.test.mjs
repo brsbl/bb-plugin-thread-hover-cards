@@ -46,6 +46,7 @@ globalThis.fetch = async (_url, init) => {
     JSON.stringify({
       ok: true,
       result: {
+        currentTurnCompletedAt: isLocal ? now - 65_000 : null,
         currentTurnStartedAt: isLocal
           ? now - 185_000
           : hasNoPullRequest
@@ -95,7 +96,6 @@ globalThis.fetch = async (_url, init) => {
               path: "/workspace/acme/bb",
             },
         status: isLocal ? "idle" : "active",
-        updatedAt: isLocal ? now - 65_000 : now,
       },
     }),
     { headers: { "content-type": "application/json" }, status: 200 },
@@ -515,7 +515,12 @@ assert.equal(
 );
 assert.equal(
   card.querySelector(".bb-thread-hover-card__runtime")?.title,
-  "Completed in 2m",
+  "Total agent time 2m",
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__runtime .bb-thread-hover-card__sr-only")
+    ?.textContent,
+  "Total agent time ",
 );
 assert.equal(
   card.querySelector(".bb-thread-hover-card__runtime")?.parentElement,

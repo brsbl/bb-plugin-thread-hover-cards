@@ -14551,6 +14551,7 @@ var pullRequestSummarySchema = external_exports.discriminatedUnion("kind", [
   external_exports.object({ kind: external_exports.literal("unavailable") }).strict()
 ]);
 var threadSummarySchema = external_exports.object({
+  currentTurnCompletedAt: external_exports.number().nullable(),
   currentTurnStartedAt: external_exports.number().nullable(),
   latestAssistantMessage: external_exports.string().nullable(),
   permissionMode: external_exports.enum(["full", "readonly", "workspace-write"]).nullable(),
@@ -14577,8 +14578,7 @@ var threadSummarySchema = external_exports.object({
     name: external_exports.string(),
     path: external_exports.string().nullable()
   }).strict(),
-  status: displayStatusSchema,
-  updatedAt: external_exports.number()
+  status: displayStatusSchema
 }).strict();
 var rpcContract = defineRpcContract({
   threadSummary: {
@@ -14615,8 +14615,10 @@ function isRunningStatus(status) {
   return status === "active" || status === "host-reconnecting" || status === "provisioning" || status === "starting" || status === "stopping";
 }
 var TURN_START_WINDOW = 256;
-async function currentTurnStartedAt(bb, threadId, status) {
-  if (!isRunningStatus(status) && status !== "idle") return null;
+async function currentTurnTiming(bb, threadId, status) {
+  if (!isRunningStatus(status) && status !== "idle") {
+    return { completedAt: null, startedAt: null };
+  }
   const timeline = await safely(
     bb.sdk.threads.timeline({
       threadId,
@@ -14624,7 +14626,14 @@ async function currentTurnStartedAt(bb, threadId, status) {
       summaryOnly: "true"
     })
   );
-  if (!timeline) return null;
+  if (!timeline) return { completedAt: null, startedAt: null };
+  const timelineTurn = [...timeline.rows].reverse().find((row) => row.kind === "turn");
+  if (timelineTurn) {
+    return {
+      completedAt: timelineTurn.completedAt,
+      startedAt: timelineTurn.startedAt
+    };
+  }
   const anchorSeq = timeline.timelinePage.olderCursor?.anchorSeq ?? 1;
   const events = await safely(
     bb.sdk.threads.events.list({
@@ -14636,7 +14645,15 @@ async function currentTurnStartedAt(bb, threadId, status) {
   const turnStart = events?.find(
     (event) => event.type === "turn/started" && event.data.parentToolCallId === void 0
   );
-  return turnStart?.createdAt ?? null;
+  const turnId = turnStart?.scope.kind === "turn" ? turnStart.scope.turnId : null;
+  const turnStartSeq = turnStart?.seq ?? null;
+  const turnCompleted = turnId !== null && turnStartSeq !== null ? events?.find(
+    (event) => event.type === "turn/completed" && event.scope.kind === "turn" && event.scope.turnId === turnId && event.seq > turnStartSeq
+  ) : null;
+  return {
+    completedAt: turnCompleted?.createdAt ?? null,
+    startedAt: turnStart?.createdAt ?? null
+  };
 }
 var PULL_REQUEST_SIGNALS = {
   blocked: "Blocked",
@@ -14662,7 +14679,7 @@ function plugin(bb) {
         providers,
         providerModels,
         conversationOutline,
-        turnStartedAt
+        turnTiming
       ] = await Promise.all([
         safely(bb.sdk.projects.get({ projectId: thread.projectId })),
         thread.environmentId ? safely(
@@ -14690,7 +14707,7 @@ function plugin(bb) {
           )
         ),
         safely(bb.sdk.threads.conversationOutline({ threadId })),
-        currentTurnStartedAt(
+        currentTurnTiming(
           bb,
           threadId,
           thread.runtime.displayStatus
@@ -14729,7 +14746,8 @@ function plugin(bb) {
         pullRequest = { kind: "unavailable" };
       }
       return {
-        currentTurnStartedAt: turnStartedAt,
+        currentTurnCompletedAt: turnTiming.completedAt,
+        currentTurnStartedAt: turnTiming.startedAt,
         latestAssistantMessage: normalizedAssistantMessage || null,
         permissionMode: executionOptions?.permissionMode ?? null,
         pullRequest,
@@ -14749,8 +14767,7 @@ function plugin(bb) {
           ),
           path: environment?.path ?? null
         },
-        status: thread.runtime.displayStatus,
-        updatedAt: thread.updatedAt
+        status: thread.runtime.displayStatus
       };
     }
   });

@@ -29,6 +29,7 @@ const pullRequestSummarySchema = z.discriminatedUnion("kind", [
 
 export const threadSummarySchema = z
   .object({
+    currentTurnCompletedAt: z.number().nullable(),
     currentTurnStartedAt: z.number().nullable(),
     latestAssistantMessage: z.string().nullable(),
     permissionMode: z
@@ -64,7 +65,6 @@ export const threadSummarySchema = z
       })
       .strict(),
     status: displayStatusSchema,
-    updatedAt: z.number(),
   })
   .strict();
 
@@ -131,12 +131,19 @@ function isRunningStatus(status: ThreadSummary["status"]): boolean {
 
 const TURN_START_WINDOW = 256;
 
-async function currentTurnStartedAt(
+interface TurnTiming {
+  completedAt: number | null;
+  startedAt: number | null;
+}
+
+async function currentTurnTiming(
   bb: BbPluginApi,
   threadId: string,
   status: ThreadSummary["status"],
-): Promise<number | null> {
-  if (!isRunningStatus(status) && status !== "idle") return null;
+): Promise<TurnTiming> {
+  if (!isRunningStatus(status) && status !== "idle") {
+    return { completedAt: null, startedAt: null };
+  }
 
   const timeline = await safely(
     bb.sdk.threads.timeline({
@@ -145,7 +152,17 @@ async function currentTurnStartedAt(
       summaryOnly: "true",
     }),
   );
-  if (!timeline) return null;
+  if (!timeline) return { completedAt: null, startedAt: null };
+
+  const timelineTurn = [...timeline.rows]
+    .reverse()
+    .find((row) => row.kind === "turn");
+  if (timelineTurn) {
+    return {
+      completedAt: timelineTurn.completedAt,
+      startedAt: timelineTurn.startedAt,
+    };
+  }
 
   const anchorSeq = timeline.timelinePage.olderCursor?.anchorSeq ?? 1;
 
@@ -161,7 +178,23 @@ async function currentTurnStartedAt(
       event.type === "turn/started" &&
       event.data.parentToolCallId === undefined,
   );
-  return turnStart?.createdAt ?? null;
+  const turnId =
+    turnStart?.scope.kind === "turn" ? turnStart.scope.turnId : null;
+  const turnStartSeq = turnStart?.seq ?? null;
+  const turnCompleted =
+    turnId !== null && turnStartSeq !== null
+      ? events?.find(
+          (event) =>
+            event.type === "turn/completed" &&
+            event.scope.kind === "turn" &&
+            event.scope.turnId === turnId &&
+            event.seq > turnStartSeq,
+        )
+      : null;
+  return {
+    completedAt: turnCompleted?.createdAt ?? null,
+    startedAt: turnStart?.createdAt ?? null,
+  };
 }
 
 const PULL_REQUEST_SIGNALS = {
@@ -189,7 +222,7 @@ export default function plugin(bb: BbPluginApi): void {
         providers,
         providerModels,
         conversationOutline,
-        turnStartedAt,
+        turnTiming,
       ] =
         await Promise.all([
           safely(bb.sdk.projects.get({ projectId: thread.projectId })),
@@ -226,7 +259,7 @@ export default function plugin(bb: BbPluginApi): void {
             ),
           ),
           safely(bb.sdk.threads.conversationOutline({ threadId })),
-          currentTurnStartedAt(
+          currentTurnTiming(
             bb,
             threadId,
             thread.runtime.displayStatus,
@@ -279,7 +312,8 @@ export default function plugin(bb: BbPluginApi): void {
       }
 
       return {
-        currentTurnStartedAt: turnStartedAt,
+        currentTurnCompletedAt: turnTiming.completedAt,
+        currentTurnStartedAt: turnTiming.startedAt,
         latestAssistantMessage: normalizedAssistantMessage || null,
         permissionMode: executionOptions?.permissionMode ?? null,
         pullRequest,
@@ -301,7 +335,6 @@ export default function plugin(bb: BbPluginApi): void {
           path: environment?.path ?? null,
         },
         status: thread.runtime.displayStatus,
-        updatedAt: thread.updatedAt,
       };
     },
   });
