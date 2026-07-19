@@ -53,9 +53,9 @@ globalThis.fetch = async (_url, init) => {
             : now - 65_000,
         latestAssistantMessage: isLocal
           ? "**Done**—hover cards are *ready* for foo_bar_baz, \\_literal\\_, and __tests__ with `Cmd+R`.\n\n## Canary\nIgnore this secondary section.\n\n| Work | PR | Status |\n| --- | --- | --- |\n| Hover cards | #42 | Ready |"
-          : null,
-        latestUserMessage:
-          "**Create** concise hover cards for foo_bar_baz and \\_literal\\_",
+          : hasNoPullRequest
+            ? null
+            : "**Agent update**—implementing concise hover cards for foo_bar_baz and \\_literal\\_",
         pullRequest:
           isLocal || hasNoPullRequest
             ? { kind: "absent" }
@@ -224,9 +224,9 @@ assert.equal(
 assert.equal(card.querySelector('[data-icon="Appointment02Icon"]'), null);
 assert.match(
   card.textContent,
-  /Create concise hover cards for foo_bar_baz and _literal_/,
+  /Agent update—implementing concise hover cards for foo_bar_baz and _literal_/,
 );
-assert.equal(card.querySelector(".bb-thread-hover-card__inline-strong"), null);
+assert.ok(card.querySelector(".bb-thread-hover-card__inline-strong"));
 assert.equal(card.querySelector(".bb-thread-hover-card__inline-emphasis"), null);
 assert.match(card.textContent, /5\.6-Sol/);
 assert.match(card.textContent, /Extra High/);
@@ -490,7 +490,7 @@ assert.match(
   card.textContent,
   /Done—hover cards are ready for foo_bar_baz, _literal_, and tests with Cmd\+R\./,
 );
-assert.doesNotMatch(card.textContent, /Create concise hover cards/);
+assert.doesNotMatch(card.textContent, /Agent update—implementing/);
 assert.doesNotMatch(card.textContent, /##|\|\s*Work\s*\||---|Canary/);
 assert.doesNotMatch(card.textContent, /No Git repository/);
 assert.ok(card.querySelector(".bb-thread-hover-card__inline-strong"));
@@ -518,12 +518,12 @@ assert.equal(card.hidden, false);
 assert.match(card.textContent, /acme\/bb/);
 assert.equal(card.querySelector(".bb-thread-hover-card__times"), null);
 assert.doesNotMatch(card.textContent, /No PR/);
+assert.equal(card.querySelector(".bb-thread-hover-card__summary"), null);
 assert.equal(card.querySelector(".bb-thread-hover-card__pr"), null);
 assert.deepEqual(
   Array.from(card.children).map((child) => child.className),
   [
     "bb-thread-hover-card__header",
-    "bb-thread-hover-card__summary",
     "bb-thread-hover-card__context",
   ],
 );

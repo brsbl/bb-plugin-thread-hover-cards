@@ -133,25 +133,6 @@ const fakeBb = {
         outputCalls += 1;
         return { output: assistantOutput };
       },
-      async promptHistory() {
-        return [
-          {
-            createdAt: 123,
-            id: "prompt_1",
-            input: [
-              {
-                type: "text",
-                text: "  Fix   the hover card \n today  ",
-              },
-              {
-                type: "text",
-                text: "Private context",
-                visibility: "agent-only",
-              },
-            ],
-          },
-        ];
-      },
       async timeline() {
         return {
           contextWindowUsage: {
@@ -178,8 +159,7 @@ assert.ok(summaryHandler, "registers the threadSummary RPC handler");
 const summary = await summaryHandler({ threadId: "thr_1" });
 assert.deepEqual(summary, {
   currentTurnStartedAt: 100,
-  latestAssistantMessage: null,
-  latestUserMessage: "Fix the hover card\ntoday",
+  latestAssistantMessage: "Finished the hover card\npolish.",
   pullRequest: {
     kind: "available",
     number: 42,
@@ -206,7 +186,7 @@ assert.deepEqual(summary, {
 });
 assert.equal("permissionMode" in summary.provider, false);
 assert.equal("contextWindowUsage" in summary, false);
-assert.equal(outputCalls, 0);
+assert.equal(outputCalls, 1);
 assert.deepEqual(eventListInputs, [
   { afterSeq: "9", limit: "256", threadId: "thr_1" },
 ]);
@@ -278,12 +258,12 @@ assert.equal(
   "Finished the hover card\npolish.",
 );
 assert.equal(idleSummary.status, "idle");
-assert.equal(outputCalls, 1);
+assert.equal(outputCalls, 5);
 
 assistantOutput = " \n\t ";
 const blankIdleSummary = await summaryHandler({ threadId: "thr_1" });
 assert.equal(blankIdleSummary.latestAssistantMessage, null);
-assert.equal(outputCalls, 2);
+assert.equal(outputCalls, 6);
 assert.deepEqual(logMessages, ["Thread hover cards loaded."]);
 assert.deepEqual(
   markdownPreview(

@@ -518,11 +518,7 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
   }
 
   const content: HTMLElement[] = [header];
-  const showsAssistantMessage =
-    summary.status === "idle" && summary.latestAssistantMessage !== null;
-  const summaryMessage = showsAssistantMessage
-    ? summary.latestAssistantMessage
-    : summary.latestUserMessage;
+  const summaryMessage = summary.latestAssistantMessage;
 
   if (summaryMessage) {
     const request = element("section", "bb-thread-hover-card__summary");
@@ -540,7 +536,7 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
       statusIcon.setAttribute("role", "img");
       request.append(statusIcon);
     }
-    request.append(messagePreview(summaryMessage, showsAssistantMessage));
+    request.append(messagePreview(summaryMessage, true));
     content.push(request);
   }
 

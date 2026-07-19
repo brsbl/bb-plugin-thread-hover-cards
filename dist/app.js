@@ -1293,8 +1293,7 @@ function renderSummary(card, summary) {
     header.append(times);
   }
   const content = [header];
-  const showsAssistantMessage = summary.status === "idle" && summary.latestAssistantMessage !== null;
-  const summaryMessage = showsAssistantMessage ? summary.latestAssistantMessage : summary.latestUserMessage;
+  const summaryMessage = summary.latestAssistantMessage;
   if (summaryMessage) {
     const request = element("section", "bb-thread-hover-card__summary");
     const statusDetails = statusPresentation(summary.status);
@@ -1311,7 +1310,7 @@ function renderSummary(card, summary) {
       statusIcon.setAttribute("role", "img");
       request.append(statusIcon);
     }
-    request.append(messagePreview(summaryMessage, showsAssistantMessage));
+    request.append(messagePreview(summaryMessage, true));
     content.push(request);
   }
   const hasMeaningfulProject = summary.repository.name !== "Repository unavailable";

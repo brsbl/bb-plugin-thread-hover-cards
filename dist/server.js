@@ -14553,7 +14553,6 @@ var pullRequestSummarySchema = external_exports.discriminatedUnion("kind", [
 var threadSummarySchema = external_exports.object({
   currentTurnStartedAt: external_exports.number().nullable(),
   latestAssistantMessage: external_exports.string().nullable(),
-  latestUserMessage: external_exports.string().nullable(),
   pullRequest: pullRequestSummarySchema,
   provider: external_exports.object({
     displayName: external_exports.string(),
@@ -14596,15 +14595,6 @@ async function safely(promise2) {
 function normalizeMessage(value) {
   const normalized = value.replace(/\r\n?/g, "\n").split("\n").map((line) => line.replace(/[\t ]+/g, " ").trim()).join("\n").replace(/\n{3,}/g, "\n\n").trim();
   return normalized.length > 1600 ? `${normalized.slice(0, 1599).trimEnd()}\u2026` : normalized;
-}
-function latestVisibleMessage(history) {
-  const latest = [...history].sort((left, right) => right.createdAt - left.createdAt)[0];
-  if (!latest) return null;
-  const text = latest.input.flatMap(
-    (item) => item.type === "text" && item.visibility !== "agent-only" ? [item.text] : []
-  ).join("\n\n");
-  const normalized = normalizeMessage(text);
-  return normalized || null;
 }
 function repositoryName(remoteUrl, fallback) {
   if (!remoteUrl) return fallback;
@@ -14664,7 +14654,6 @@ function plugin(bb) {
     async threadSummary({ threadId }) {
       const thread = await bb.sdk.threads.get({ threadId });
       const [
-        history,
         project,
         environment,
         pullRequestResult,
@@ -14674,7 +14663,6 @@ function plugin(bb) {
         threadOutput,
         turnStartedAt
       ] = await Promise.all([
-        safely(bb.sdk.threads.promptHistory({ threadId, limit: "1" })),
         safely(bb.sdk.projects.get({ projectId: thread.projectId })),
         thread.environmentId ? safely(
           bb.sdk.environments.get({
@@ -14700,7 +14688,7 @@ function plugin(bb) {
             } : { providerId: thread.providerId }
           )
         ),
-        thread.runtime.displayStatus === "idle" ? safely(bb.sdk.threads.output({ threadId })) : Promise.resolve(null),
+        safely(bb.sdk.threads.output({ threadId })),
         currentTurnStartedAt(
           bb,
           threadId,
@@ -14741,7 +14729,6 @@ function plugin(bb) {
       return {
         currentTurnStartedAt: turnStartedAt,
         latestAssistantMessage: normalizedAssistantMessage || null,
-        latestUserMessage: history ? latestVisibleMessage(history) : null,
         pullRequest,
         provider: {
           displayName: provider?.displayName ?? thread.providerId,

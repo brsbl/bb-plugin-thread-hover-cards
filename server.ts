@@ -31,7 +31,6 @@ export const threadSummarySchema = z
   .object({
     currentTurnStartedAt: z.number().nullable(),
     latestAssistantMessage: z.string().nullable(),
-    latestUserMessage: z.string().nullable(),
     pullRequest: pullRequestSummarySchema,
     provider: z
       .object({
@@ -94,23 +93,6 @@ function normalizeMessage(value: string): string {
   return normalized.length > 1_600
     ? `${normalized.slice(0, 1_599).trimEnd()}…`
     : normalized;
-}
-
-function latestVisibleMessage(
-  history: Awaited<ReturnType<BbPluginApi["sdk"]["threads"]["promptHistory"]>>,
-): string | null {
-  const latest = [...history].sort((left, right) => right.createdAt - left.createdAt)[0];
-  if (!latest) return null;
-
-  const text = latest.input
-    .flatMap((item) =>
-      item.type === "text" && item.visibility !== "agent-only"
-        ? [item.text]
-        : [],
-    )
-    .join("\n\n");
-  const normalized = normalizeMessage(text);
-  return normalized || null;
 }
 
 function repositoryName(remoteUrl: string | null, fallback: string): string {
@@ -197,7 +179,6 @@ export default function plugin(bb: BbPluginApi): void {
     async threadSummary({ threadId }) {
       const thread = await bb.sdk.threads.get({ threadId });
       const [
-        history,
         project,
         environment,
         pullRequestResult,
@@ -208,7 +189,6 @@ export default function plugin(bb: BbPluginApi): void {
         turnStartedAt,
       ] =
         await Promise.all([
-          safely(bb.sdk.threads.promptHistory({ threadId, limit: "1" })),
           safely(bb.sdk.projects.get({ projectId: thread.projectId })),
           thread.environmentId
             ? safely(
@@ -242,9 +222,7 @@ export default function plugin(bb: BbPluginApi): void {
                 : { providerId: thread.providerId },
             ),
           ),
-          thread.runtime.displayStatus === "idle"
-            ? safely(bb.sdk.threads.output({ threadId }))
-            : Promise.resolve(null),
+          safely(bb.sdk.threads.output({ threadId })),
           currentTurnStartedAt(
             bb,
             threadId,
@@ -297,7 +275,6 @@ export default function plugin(bb: BbPluginApi): void {
       return {
         currentTurnStartedAt: turnStartedAt,
         latestAssistantMessage: normalizedAssistantMessage || null,
-        latestUserMessage: history ? latestVisibleMessage(history) : null,
         pullRequest,
         provider: {
           displayName: provider?.displayName ?? thread.providerId,
