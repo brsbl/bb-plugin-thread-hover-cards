@@ -149,7 +149,11 @@ assert.match(
 );
 assert.match(
   style.textContent,
-  /\.bb-thread-hover-card__summary\[data-working="true"\]::after[\s\S]*?bb-thread-hover-card-message-shimmer/,
+  /\.bb-thread-hover-card__summary\[data-working="true"\][\s\S]*?\.bb-thread-hover-card__message \{[\s\S]*?background-clip: text;[\s\S]*?-webkit-text-fill-color: transparent;[\s\S]*?bb-thread-hover-card-message-shimmer/,
+);
+assert.doesNotMatch(
+  style.textContent,
+  /\.bb-thread-hover-card__summary\[data-working="true"\]::after/,
 );
 assert.match(
   style.textContent,
