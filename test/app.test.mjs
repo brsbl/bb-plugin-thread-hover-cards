@@ -129,6 +129,14 @@ assert.match(
   style.textContent,
   /\.bb-thread-hover-card__message[\s\S]*?font-weight: 350/,
 );
+assert.match(
+  style.textContent,
+  /\.bb-thread-hover-card__provider-identity \{[\s\S]*?justify-content: flex-start;[\s\S]*?gap: 0.25rem/,
+);
+assert.match(
+  style.textContent,
+  /\.bb-thread-hover-card__provider-model\.bb-thread-hover-card__truncate \{[\s\S]*?flex: 0 1 auto/,
+);
 assert.doesNotMatch(style.textContent, /--font-mono/);
 assert.match(style.textContent, /\.bb-thread-hover-card__context/);
 assert.match(
@@ -241,6 +249,18 @@ assert.equal(
 assert.equal(
   card.querySelector(".bb-thread-hover-card__reasoning")?.textContent,
   "Extra High",
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__provider-model")?.parentElement,
+  card.querySelector(".bb-thread-hover-card__provider-identity"),
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__reasoning")?.parentElement,
+  card.querySelector(".bb-thread-hover-card__provider-identity"),
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__provider-model")?.nextElementSibling,
+  card.querySelector(".bb-thread-hover-card__reasoning"),
 );
 assert.deepEqual(
   Array.from(card.children).map((child) => child.className),

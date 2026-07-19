@@ -476,13 +476,11 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
   provider.title = reasoningLabel
     ? `${summary.provider.displayName} · ${modelLabel} · ${reasoningLabel} reasoning`
     : `${summary.provider.displayName} · ${modelLabel}`;
-  provider.append(
-    providerIcon(summary.provider),
-    element(
-      "span",
-      "bb-thread-hover-card__sr-only",
-      `${summary.provider.displayName}, `,
-    ),
+  const providerIdentity = element(
+    "div",
+    "bb-thread-hover-card__provider-identity",
+  );
+  providerIdentity.append(
     element(
       "span",
       "bb-thread-hover-card__provider-model bb-thread-hover-card__truncate",
@@ -496,8 +494,17 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
       reasoningLabel,
     );
     reasoning.title = `${reasoningLabel} reasoning`;
-    provider.append(reasoning);
+    providerIdentity.append(reasoning);
   }
+  provider.append(
+    providerIcon(summary.provider),
+    element(
+      "span",
+      "bb-thread-hover-card__sr-only",
+      `${summary.provider.displayName}, `,
+    ),
+    providerIdentity,
+  );
   header.append(provider);
 
   const times = element("div", "bb-thread-hover-card__times");

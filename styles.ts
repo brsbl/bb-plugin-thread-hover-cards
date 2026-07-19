@@ -33,6 +33,7 @@ export const HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__header,
 .bb-thread-hover-card__provider,
+.bb-thread-hover-card__provider-identity,
 .bb-thread-hover-card__times,
 .bb-thread-hover-card__context,
 .bb-thread-hover-card__project,
@@ -99,6 +100,14 @@ export const HOVER_CARD_CSS = String.raw`
   flex: 1 1 auto;
   gap: 0.3125rem;
   color: var(--muted-foreground);
+}
+
+.bb-thread-hover-card__provider-identity {
+  min-width: 0;
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  gap: 0.25rem;
+  overflow: hidden;
 }
 
 .bb-thread-hover-card__reasoning {
@@ -168,6 +177,7 @@ export const HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__provider-model.bb-thread-hover-card__truncate {
+  flex: 0 1 auto;
   color: var(--muted-foreground);
 }
 

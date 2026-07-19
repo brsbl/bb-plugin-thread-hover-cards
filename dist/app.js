@@ -496,6 +496,7 @@ var HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__header,
 .bb-thread-hover-card__provider,
+.bb-thread-hover-card__provider-identity,
 .bb-thread-hover-card__times,
 .bb-thread-hover-card__context,
 .bb-thread-hover-card__project,
@@ -562,6 +563,14 @@ var HOVER_CARD_CSS = String.raw`
   flex: 1 1 auto;
   gap: 0.3125rem;
   color: var(--muted-foreground);
+}
+
+.bb-thread-hover-card__provider-identity {
+  min-width: 0;
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  gap: 0.25rem;
+  overflow: hidden;
 }
 
 .bb-thread-hover-card__reasoning {
@@ -631,6 +640,7 @@ var HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__provider-model.bb-thread-hover-card__truncate {
+  flex: 0 1 auto;
   color: var(--muted-foreground);
 }
 
@@ -1291,13 +1301,11 @@ function renderSummary(card, summary) {
   );
   const reasoningLabel = summary.provider.reasoningLevel ? REASONING_LABELS[summary.provider.reasoningLevel] : null;
   provider.title = reasoningLabel ? `${summary.provider.displayName} \xB7 ${modelLabel} \xB7 ${reasoningLabel} reasoning` : `${summary.provider.displayName} \xB7 ${modelLabel}`;
-  provider.append(
-    providerIcon(summary.provider),
-    element(
-      "span",
-      "bb-thread-hover-card__sr-only",
-      `${summary.provider.displayName}, `
-    ),
+  const providerIdentity = element(
+    "div",
+    "bb-thread-hover-card__provider-identity"
+  );
+  providerIdentity.append(
     element(
       "span",
       "bb-thread-hover-card__provider-model bb-thread-hover-card__truncate",
@@ -1311,8 +1319,17 @@ function renderSummary(card, summary) {
       reasoningLabel
     );
     reasoning.title = `${reasoningLabel} reasoning`;
-    provider.append(reasoning);
+    providerIdentity.append(reasoning);
   }
+  provider.append(
+    providerIcon(summary.provider),
+    element(
+      "span",
+      "bb-thread-hover-card__sr-only",
+      `${summary.provider.displayName}, `
+    ),
+    providerIdentity
+  );
   header.append(provider);
   const times = element("div", "bb-thread-hover-card__times");
   if (summary.currentTurnStartedAt !== null) {
