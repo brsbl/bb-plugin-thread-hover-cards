@@ -7,11 +7,19 @@ export const HOVER_CARD_CSS = String.raw`
   overflow: hidden;
   padding: 0.75rem;
   border: 1px solid var(--border);
+  border-color:
+    color-mix(in srgb, var(--foreground) 14%, transparent);
   border-radius: var(--radius-lg, 0.5rem);
   background: var(--popover);
+  background: color-mix(in srgb, var(--popover) 82%, transparent);
   color: var(--popover-foreground);
-  box-shadow: 0 0.75rem 2rem
-    color-mix(in srgb, var(--foreground) 14%, transparent);
+  box-shadow:
+    0 0.75rem 2.5rem
+      color-mix(in srgb, var(--foreground) 16%, transparent),
+    inset 0 1px 0
+      color-mix(in srgb, var(--background) 48%, transparent);
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
   font-family: inherit;
   font-size: 0.75rem;
   line-height: 1.35;
@@ -195,6 +203,15 @@ export const HOVER_CARD_CSS = String.raw`
 @media (prefers-reduced-motion: reduce) {
   .bb-thread-hover-card.is-visible {
     animation: none;
+  }
+}
+
+@supports not (
+  (backdrop-filter: blur(1px)) or
+    (-webkit-backdrop-filter: blur(1px))
+) {
+  .bb-thread-hover-card {
+    background: var(--popover);
   }
 }
 `;

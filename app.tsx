@@ -4,6 +4,8 @@ import { HOVER_CARD_CSS } from "./styles";
 
 const CARD_ID = "bb-thread-hover-card";
 const STYLE_ID = "bb-thread-hover-card-styles";
+const PLUGIN_CSS_SELECTOR =
+  'link[data-bb-plugin-css="thread-hover-cards"]';
 const THREAD_TRIGGER_SELECTOR = "a[data-sidebar-thread-id]";
 const THREAD_ROW_SELECTOR = ".group\\/thread-row";
 const OPEN_DELAY_MS = 150;
@@ -358,7 +360,17 @@ function installHoverCards(): HoverCardController {
 
   function scheduleClose(): void {
     cancelClose();
-    closeTimer = setTimeout(closeCard, CLOSE_DELAY_MS);
+    closeTimer = setTimeout(() => {
+      closeTimer = null;
+      const focused = document.activeElement;
+      if (
+        focused === activeTrigger ||
+        (focused instanceof Node && card?.contains(focused))
+      ) {
+        return;
+      }
+      closeCard();
+    }, CLOSE_DELAY_MS);
   }
 
   function onPointerOver(event: PointerEvent): void {
@@ -377,6 +389,7 @@ function installHoverCards(): HoverCardController {
     if (event.relatedTarget instanceof Node && card?.contains(event.relatedTarget)) {
       return;
     }
+    cancelOpen();
     scheduleClose();
   }
 
@@ -441,11 +454,11 @@ function installHoverCards(): HoverCardController {
       const trigger = activeTrigger;
       const restoreFocus =
         event.target instanceof Node && card?.contains(event.target);
-      closeCard();
       if (restoreFocus) {
         event.preventDefault();
         trigger.focus();
       }
+      closeCard();
     }
   }
 
@@ -483,13 +496,43 @@ function installHoverCards(): HoverCardController {
   };
 }
 
+function installHoverCardLifecycle(): HoverCardController {
+  let controller: HoverCardController | null = null;
+  let disposed = false;
+
+  function reconcile(): void {
+    if (disposed) return;
+
+    const pluginIsActive = document.querySelector(PLUGIN_CSS_SELECTOR) !== null;
+    if (pluginIsActive && !controller) {
+      controller = installHoverCards();
+    } else if (!pluginIsActive && controller) {
+      controller.dispose();
+      controller = null;
+    }
+  }
+
+  const observer = new MutationObserver(reconcile);
+  observer.observe(document.head, { childList: true });
+  reconcile();
+
+  return {
+    dispose() {
+      disposed = true;
+      observer.disconnect();
+      controller?.dispose();
+      controller = null;
+    },
+  };
+}
+
 const pluginGlobal = globalThis as typeof globalThis & {
   __bbThreadHoverCards?: HoverCardController;
 };
 
 function start(): void {
   pluginGlobal.__bbThreadHoverCards?.dispose();
-  pluginGlobal.__bbThreadHoverCards = installHoverCards();
+  pluginGlobal.__bbThreadHoverCards = installHoverCardLifecycle();
 }
 
 if (typeof document !== "undefined") {

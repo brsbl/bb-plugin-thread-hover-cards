@@ -25,11 +25,19 @@ var HOVER_CARD_CSS = String.raw`
   overflow: hidden;
   padding: 0.75rem;
   border: 1px solid var(--border);
+  border-color:
+    color-mix(in srgb, var(--foreground) 14%, transparent);
   border-radius: var(--radius-lg, 0.5rem);
   background: var(--popover);
+  background: color-mix(in srgb, var(--popover) 82%, transparent);
   color: var(--popover-foreground);
-  box-shadow: 0 0.75rem 2rem
-    color-mix(in srgb, var(--foreground) 14%, transparent);
+  box-shadow:
+    0 0.75rem 2.5rem
+      color-mix(in srgb, var(--foreground) 16%, transparent),
+    inset 0 1px 0
+      color-mix(in srgb, var(--background) 48%, transparent);
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
   font-family: inherit;
   font-size: 0.75rem;
   line-height: 1.35;
@@ -215,11 +223,21 @@ var HOVER_CARD_CSS = String.raw`
     animation: none;
   }
 }
+
+@supports not (
+  (backdrop-filter: blur(1px)) or
+    (-webkit-backdrop-filter: blur(1px))
+) {
+  .bb-thread-hover-card {
+    background: var(--popover);
+  }
+}
 `;
 
 // app.tsx
 var CARD_ID = "bb-thread-hover-card";
 var STYLE_ID = "bb-thread-hover-card-styles";
+var PLUGIN_CSS_SELECTOR = 'link[data-bb-plugin-css="thread-hover-cards"]';
 var THREAD_TRIGGER_SELECTOR = "a[data-sidebar-thread-id]";
 var THREAD_ROW_SELECTOR = ".group\\/thread-row";
 var OPEN_DELAY_MS = 150;
@@ -506,7 +524,14 @@ function installHoverCards() {
   }
   function scheduleClose() {
     cancelClose();
-    closeTimer = setTimeout(closeCard, CLOSE_DELAY_MS);
+    closeTimer = setTimeout(() => {
+      closeTimer = null;
+      const focused = document.activeElement;
+      if (focused === activeTrigger || focused instanceof Node && card?.contains(focused)) {
+        return;
+      }
+      closeCard();
+    }, CLOSE_DELAY_MS);
   }
   function onPointerOver(event) {
     if (event.pointerType === "touch") return;
@@ -523,6 +548,7 @@ function installHoverCards() {
     if (event.relatedTarget instanceof Node && card?.contains(event.relatedTarget)) {
       return;
     }
+    cancelOpen();
     scheduleClose();
   }
   function onFocusIn(event) {
@@ -563,11 +589,11 @@ function installHoverCards() {
     if (event.key === "Escape") {
       const trigger = activeTrigger;
       const restoreFocus = event.target instanceof Node && card?.contains(event.target);
-      closeCard();
       if (restoreFocus) {
         event.preventDefault();
         trigger.focus();
       }
+      closeCard();
     }
   }
   function onClick(event) {
@@ -601,10 +627,35 @@ function installHoverCards() {
     }
   };
 }
+function installHoverCardLifecycle() {
+  let controller = null;
+  let disposed = false;
+  function reconcile() {
+    if (disposed) return;
+    const pluginIsActive = document.querySelector(PLUGIN_CSS_SELECTOR) !== null;
+    if (pluginIsActive && !controller) {
+      controller = installHoverCards();
+    } else if (!pluginIsActive && controller) {
+      controller.dispose();
+      controller = null;
+    }
+  }
+  const observer = new MutationObserver(reconcile);
+  observer.observe(document.head, { childList: true });
+  reconcile();
+  return {
+    dispose() {
+      disposed = true;
+      observer.disconnect();
+      controller?.dispose();
+      controller = null;
+    }
+  };
+}
 var pluginGlobal = globalThis;
 function start() {
   pluginGlobal.__bbThreadHoverCards?.dispose();
-  pluginGlobal.__bbThreadHoverCards = installHoverCards();
+  pluginGlobal.__bbThreadHoverCards = installHoverCardLifecycle();
 }
 if (typeof document !== "undefined") {
   if (document.readyState === "loading") {
