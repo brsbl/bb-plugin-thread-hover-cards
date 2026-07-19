@@ -14615,65 +14615,47 @@ function isRunningStatus(status) {
   return status === "active" || status === "host-reconnecting" || status === "provisioning" || status === "starting" || status === "stopping";
 }
 var SUMMARY_LOOKUP_TIMEOUT_MS = 2500;
-var TARGET_EVENT_LOOKUP_LIMIT = 8;
-var TARGET_EVENT_WAIT_MS = "1";
+var ACTIVE_TURN_EVENT_LIMIT = "16";
 async function currentTurnTiming(bb, threadId, status, signal) {
   if (!isRunningStatus(status) && status !== "idle") {
     return { completedAt: null, startedAt: null };
   }
   const timeline = await safely(
-    bb.sdk.threads.timeline({
-      threadId,
-      segmentLimit: "1",
-      signal,
-      summaryOnly: "true"
-    })
+    bb.sdk.threads.timeline(
+      status === "idle" ? { threadId, segmentLimit: "1", signal } : {
+        threadId,
+        segmentLimit: "1",
+        signal,
+        summaryOnly: "true"
+      }
+    )
   );
   if (!timeline) return { completedAt: null, startedAt: null };
-  let eventCursor = Math.max(
-    0,
-    (timeline.timelinePage.olderCursor?.anchorSeq ?? 1) - 1
+  if (status === "idle") {
+    for (let index = timeline.rows.length - 1; index >= 0; index -= 1) {
+      const row = timeline.rows[index];
+      if (row?.kind === "turn") {
+        return { completedAt: row.completedAt, startedAt: row.startedAt };
+      }
+    }
+    return { completedAt: null, startedAt: null };
+  }
+  const anchorSeq = timeline.timelinePage.olderCursor?.anchorSeq ?? 1;
+  const events = await safely(
+    bb.sdk.threads.events.list({
+      afterSeq: String(Math.max(0, anchorSeq - 1)),
+      limit: ACTIVE_TURN_EVENT_LIMIT,
+      signal,
+      threadId
+    })
   );
-  let startedAt = null;
-  let turnId = null;
-  for (let attempt = 0; attempt < TARGET_EVENT_LOOKUP_LIMIT; attempt += 1) {
-    const event = await safely(
-      bb.sdk.threads.events.wait({
-        afterSeq: String(eventCursor),
-        signal,
-        threadId,
-        type: "turn/started",
-        waitMs: TARGET_EVENT_WAIT_MS
-      })
-    );
-    if (!event) break;
-    eventCursor = event.seq;
-    if (event.type === "turn/started" && event.data.parentToolCallId === void 0 && event.scope.kind === "turn") {
-      startedAt = event.createdAt;
-      turnId = event.scope.turnId;
-      break;
-    }
-  }
-  if (startedAt === null || turnId === null || status !== "idle") {
-    return { completedAt: null, startedAt };
-  }
-  for (let attempt = 0; attempt < TARGET_EVENT_LOOKUP_LIMIT; attempt += 1) {
-    const event = await safely(
-      bb.sdk.threads.events.wait({
-        afterSeq: String(eventCursor),
-        signal,
-        threadId,
-        type: "turn/completed",
-        waitMs: TARGET_EVENT_WAIT_MS
-      })
-    );
-    if (!event) break;
-    eventCursor = event.seq;
-    if (event.type === "turn/completed" && event.scope.kind === "turn" && event.scope.turnId === turnId) {
-      return { completedAt: event.createdAt, startedAt };
-    }
-  }
-  return { completedAt: null, startedAt };
+  const started = events?.find(
+    (event) => event.type === "turn/started" && event.data.parentToolCallId === void 0 && event.scope.kind === "turn"
+  );
+  return {
+    completedAt: null,
+    startedAt: started?.createdAt ?? null
+  };
 }
 var PULL_REQUEST_SIGNALS = {
   blocked: "Blocked",

@@ -13,11 +13,10 @@ let outlineCalls = 0;
 let assistantPreview = "  Finished   the hover card \n polish.  ";
 let turnStartedAt: number | null = 100;
 let turnCompletedAt: number | null = null;
-const eventWaitInputs: Array<{
+const eventListInputs: Array<{
   afterSeq?: string;
+  limit?: string;
   threadId: string;
-  type: string;
-  waitMs: string;
 }> = [];
 
 const fakeBb = {
@@ -121,21 +120,19 @@ const fakeBb = {
         };
       },
       events: {
-        async wait(input: {
+        async list(input: {
           afterSeq?: string;
+          limit?: string;
           signal?: AbortSignal;
           threadId: string;
-          type: string;
-          waitMs: string;
         }) {
-          eventWaitInputs.push({
+          eventListInputs.push({
             afterSeq: input.afterSeq,
+            limit: input.limit,
             threadId: input.threadId,
-            type: input.type,
-            waitMs: input.waitMs,
           });
-          if (input.type === "turn/started" && turnStartedAt !== null) {
-            return {
+          if (turnStartedAt !== null) {
+            return [{
               createdAt: turnStartedAt,
               data: { providerThreadId: "provider_1" },
               id: "event_turn_started",
@@ -143,23 +140,9 @@ const fakeBb = {
               seq: 11,
               threadId: input.threadId,
               type: "turn/started" as const,
-            };
+            }];
           }
-          if (input.type === "turn/completed" && turnCompletedAt !== null) {
-            return {
-              createdAt: turnCompletedAt,
-              data: {
-                providerThreadId: "provider_1",
-                status: "completed" as const,
-              },
-              id: "event_turn_completed",
-              scope: { kind: "turn" as const, turnId: "turn_1" },
-              seq: 12,
-              threadId: input.threadId,
-              type: "turn/completed" as const,
-            };
-          }
-          return null;
+          return [];
         },
       },
       async get() {
@@ -179,7 +162,20 @@ const fakeBb = {
             usedTokens: 82_000,
           },
           maxSeq: 20,
-          rows: [],
+          rows:
+            displayStatus === "idle" && turnStartedAt !== null
+              ? [
+                  {
+                    completedAt: turnCompletedAt,
+                    id: "turn_1",
+                    kind: "turn" as const,
+                    sourceSeqEnd: 12,
+                    sourceSeqStart: 11,
+                    startedAt: turnStartedAt,
+                    status: "completed" as const,
+                  },
+                ]
+              : [],
           timelinePage: {
             olderCursor: { anchorId: "prompt_1", anchorSeq: 10 },
           },
@@ -225,12 +221,11 @@ assert.equal("permissionMode" in summary.provider, false);
 assert.equal(summary.permissionMode, "full");
 assert.equal("contextWindowUsage" in summary, false);
 assert.equal(outlineCalls, 1);
-assert.deepEqual(eventWaitInputs, [
+assert.deepEqual(eventListInputs, [
   {
     afterSeq: "9",
+    limit: "16",
     threadId: "thr_1",
-    type: "turn/started",
-    waitMs: "1",
   },
 ]);
 
@@ -245,7 +240,7 @@ assert.equal(missingTurnStartSummary.currentTurnStartedAt, null);
 displayStatus = "idle";
 turnStartedAt = 100;
 turnCompletedAt = 220;
-eventWaitInputs.length = 0;
+eventListInputs.length = 0;
 const idleSummary = await summaryHandler({ threadId: "thr_1" });
 assert.equal(idleSummary.currentTurnStartedAt, 100);
 assert.equal(idleSummary.currentTurnCompletedAt, 220);
@@ -255,20 +250,7 @@ assert.equal(
 );
 assert.equal(idleSummary.status, "idle");
 assert.equal(outlineCalls, 4);
-assert.deepEqual(eventWaitInputs, [
-  {
-    afterSeq: "9",
-    threadId: "thr_1",
-    type: "turn/started",
-    waitMs: "1",
-  },
-  {
-    afterSeq: "11",
-    threadId: "thr_1",
-    type: "turn/completed",
-    waitMs: "1",
-  },
-]);
+assert.deepEqual(eventListInputs, []);
 
 assistantPreview = " \n\t ";
 turnStartedAt = 300;
