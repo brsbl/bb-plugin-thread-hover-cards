@@ -1,7 +1,6 @@
 import { definePluginApp } from "@bb/plugin-sdk/app";
 import {
   AlarmClockIcon,
-  Appointment02Icon,
   CancelCircleIcon,
   CheckmarkCircle02Icon,
   ClaudeIcon,
@@ -209,23 +208,6 @@ function threadIdFor(trigger: HTMLAnchorElement): string | null {
   return value ? value : null;
 }
 
-function relativeTime(timestamp: number): string {
-  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
-  if (elapsedSeconds < 10) return "now";
-  if (elapsedSeconds < 60) return `${elapsedSeconds}s`;
-
-  const elapsedMinutes = Math.floor(elapsedSeconds / 60);
-  if (elapsedMinutes < 60) return `${elapsedMinutes}m`;
-
-  const elapsedHours = Math.floor(elapsedMinutes / 60);
-  if (elapsedHours < 24) return `${elapsedHours}h`;
-
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-  }).format(timestamp);
-}
-
 function runTime(timestamp: number): string {
   const elapsedSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
   const seconds = elapsedSeconds % 60;
@@ -237,21 +219,13 @@ function runTime(timestamp: number): string {
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }
 
-function refreshTimes(card: HTMLElement): void {
+function refreshRunTime(card: HTMLElement): void {
   const runtime = card.querySelector<HTMLElement>("[data-turn-started-at]");
   if (runtime) {
     const timestamp = Number(runtime.dataset.turnStartedAt);
     const value = runTime(timestamp);
     runtime.querySelector<HTMLElement>("[data-time-value]")!.textContent = value;
     runtime.title = `Run time ${value}`;
-  }
-
-  const updated = card.querySelector<HTMLElement>("[data-updated-at]");
-  if (updated) {
-    const timestamp = Number(updated.dataset.updatedAt);
-    const value = relativeTime(timestamp);
-    updated.querySelector<HTMLElement>("[data-time-value]")!.textContent = value;
-    updated.title = `Updated ${value}`;
   }
 }
 
@@ -507,8 +481,8 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
   );
   header.append(provider);
 
-  const times = element("div", "bb-thread-hover-card__times");
   if (summary.currentTurnStartedAt !== null) {
+    const times = element("div", "bb-thread-hover-card__times");
     const runtime = element("span", "bb-thread-hover-card__runtime");
     runtime.dataset.turnStartedAt = String(summary.currentTurnStartedAt);
     const runtimeValue = element("span", "bb-thread-hover-card__time-value");
@@ -533,22 +507,8 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
       runtimeValue,
     );
     times.append(runtime);
+    header.append(times);
   }
-  const updated = element("span", "bb-thread-hover-card__updated");
-  updated.dataset.updatedAt = String(summary.updatedAt);
-  const updatedValue = element("span", "bb-thread-hover-card__time-value");
-  updatedValue.dataset.timeValue = "";
-  updated.append(
-    icon(
-      Appointment02Icon,
-      "Appointment02Icon",
-      "bb-thread-hover-card__icon bb-thread-hover-card__time-icon",
-    ),
-    element("span", "bb-thread-hover-card__sr-only", "Updated "),
-    updatedValue,
-  );
-  times.append(updated);
-  header.append(times);
 
   const content: HTMLElement[] = [header];
   const showsAssistantMessage =
@@ -691,7 +651,7 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
   }
 
   card.replaceChildren(...content);
-  refreshTimes(card);
+  refreshRunTime(card);
 }
 
 function installHoverCards(): HoverCardController {
@@ -766,7 +726,7 @@ function installHoverCards(): HoverCardController {
     hoverCard.classList.add("is-visible");
     if (timeTimer) clearInterval(timeTimer);
     timeTimer = setInterval(() => {
-      if (card && !card.hidden) refreshTimes(card);
+      if (card && !card.hidden) refreshRunTime(card);
     }, 1_000);
 
     const cached = cache.get(threadId);

@@ -181,20 +181,15 @@ assert.equal(
   "1m",
 );
 assert.equal(
-  card.querySelector(".bb-thread-hover-card__updated [data-time-value]")
-    ?.textContent,
-  "now",
-);
-assert.equal(
   card.querySelector(".bb-thread-hover-card__runtime .bb-thread-hover-card__sr-only")
     ?.textContent,
   "Run time ",
 );
 assert.equal(
-  card.querySelector(".bb-thread-hover-card__updated .bb-thread-hover-card__sr-only")
-    ?.textContent,
-  "Updated ",
+  card.querySelector(".bb-thread-hover-card__times")?.children.length,
+  1,
 );
+assert.equal(card.querySelector(".bb-thread-hover-card__updated"), null);
 assert.equal(
   card.querySelector(".bb-thread-hover-card__provider .bb-thread-hover-card__sr-only")
     ?.textContent,
@@ -213,7 +208,7 @@ assert.equal(
     ?.querySelector('[data-icon="AlarmClockIcon"]'),
   null,
 );
-assert.ok(card.querySelector('[data-icon="Appointment02Icon"]'));
+assert.equal(card.querySelector('[data-icon="Appointment02Icon"]'), null);
 assert.match(
   card.textContent,
   /Create concise hover cards for foo_bar_baz and _literal_/,
@@ -423,6 +418,7 @@ await new Promise((resolve) => setTimeout(resolve, 20));
 
 assert.equal(card.hidden, false);
 assert.match(card.textContent, /~\/\.bb\/…\/env_pmgnprh2j6/);
+assert.equal(card.querySelector(".bb-thread-hover-card__times"), null);
 assert.equal(
   card.querySelector(".bb-thread-hover-card__local")?.getAttribute("aria-label"),
   "Local workspace: /Users/test/.bb/personal-workspaces/env_pmgnprh2j6",

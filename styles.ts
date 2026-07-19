@@ -77,23 +77,17 @@ export const HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__runtime,
-.bb-thread-hover-card__updated,
 .bb-thread-hover-card__loading,
 .bb-thread-hover-card__meta-label {
   color: var(--muted-foreground);
 }
 
-.bb-thread-hover-card__runtime,
-.bb-thread-hover-card__updated {
+.bb-thread-hover-card__runtime {
   display: inline-flex;
   flex: none;
   align-items: center;
   gap: 0.1875rem;
   font-variant-numeric: tabular-nums;
-}
-
-.bb-thread-hover-card__updated {
-  flex: none;
 }
 
 .bb-thread-hover-card__provider {

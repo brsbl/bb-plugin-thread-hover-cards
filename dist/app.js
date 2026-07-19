@@ -84,52 +84,6 @@ var AlarmClockIcon = [
     }
   ]
 ];
-var Appointment02Icon = [
-  [
-    "path",
-    {
-      d: "M16 2V6M8 2V6",
-      stroke: "currentColor",
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      strokeWidth: "1.5",
-      key: "0"
-    }
-  ],
-  [
-    "path",
-    {
-      d: "M13 4H11C7.22876 4 5.34315 4 4.17157 5.17157C3 6.34315 3 8.22876 3 12V14C3 17.7712 3 19.6569 4.17157 20.8284C5.34315 22 7.22876 22 11 22H13C16.7712 22 18.6569 22 19.8284 20.8284C21 19.6569 21 17.7712 21 14V12C21 8.22876 21 6.34315 19.8284 5.17157C18.6569 4 16.7712 4 13 4Z",
-      stroke: "currentColor",
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      strokeWidth: "1.5",
-      key: "1"
-    }
-  ],
-  [
-    "path",
-    {
-      d: "M3 10H21",
-      stroke: "currentColor",
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      strokeWidth: "1.5",
-      key: "2"
-    }
-  ],
-  [
-    "path",
-    {
-      d: "M9 16.5C9 16.5 10.5 17 11 18.5C11 18.5 13.1765 14.5 16 13.5",
-      stroke: "currentColor",
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      strokeWidth: "1.5",
-      key: "3"
-    }
-  ]
-];
 var LaptopIcon = [
   [
     "path",
@@ -540,23 +494,17 @@ var HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__runtime,
-.bb-thread-hover-card__updated,
 .bb-thread-hover-card__loading,
 .bb-thread-hover-card__meta-label {
   color: var(--muted-foreground);
 }
 
-.bb-thread-hover-card__runtime,
-.bb-thread-hover-card__updated {
+.bb-thread-hover-card__runtime {
   display: inline-flex;
   flex: none;
   align-items: center;
   gap: 0.1875rem;
   font-variant-numeric: tabular-nums;
-}
-
-.bb-thread-hover-card__updated {
-  flex: none;
 }
 
 .bb-thread-hover-card__provider {
@@ -1092,19 +1040,6 @@ function threadIdFor(trigger) {
   const value = trigger.dataset.sidebarThreadId?.trim();
   return value ? value : null;
 }
-function relativeTime(timestamp) {
-  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1e3));
-  if (elapsedSeconds < 10) return "now";
-  if (elapsedSeconds < 60) return `${elapsedSeconds}s`;
-  const elapsedMinutes = Math.floor(elapsedSeconds / 60);
-  if (elapsedMinutes < 60) return `${elapsedMinutes}m`;
-  const elapsedHours = Math.floor(elapsedMinutes / 60);
-  if (elapsedHours < 24) return `${elapsedHours}h`;
-  return new Intl.DateTimeFormat(void 0, {
-    month: "short",
-    day: "numeric"
-  }).format(timestamp);
-}
 function runTime(timestamp) {
   const elapsedSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1e3));
   const seconds = elapsedSeconds % 60;
@@ -1114,20 +1049,13 @@ function runTime(timestamp) {
   const hours = Math.floor(elapsedMinutes / 60);
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }
-function refreshTimes(card) {
+function refreshRunTime(card) {
   const runtime2 = card.querySelector("[data-turn-started-at]");
   if (runtime2) {
     const timestamp = Number(runtime2.dataset.turnStartedAt);
     const value = runTime(timestamp);
     runtime2.querySelector("[data-time-value]").textContent = value;
     runtime2.title = `Run time ${value}`;
-  }
-  const updated = card.querySelector("[data-updated-at]");
-  if (updated) {
-    const timestamp = Number(updated.dataset.updatedAt);
-    const value = relativeTime(timestamp);
-    updated.querySelector("[data-time-value]").textContent = value;
-    updated.title = `Updated ${value}`;
   }
 }
 function formatModelLabel(value, providerId) {
@@ -1331,8 +1259,8 @@ function renderSummary(card, summary) {
     providerIdentity
   );
   header.append(provider);
-  const times = element("div", "bb-thread-hover-card__times");
   if (summary.currentTurnStartedAt !== null) {
+    const times = element("div", "bb-thread-hover-card__times");
     const runtime2 = element("span", "bb-thread-hover-card__runtime");
     runtime2.dataset.turnStartedAt = String(summary.currentTurnStartedAt);
     const runtimeValue = element("span", "bb-thread-hover-card__time-value");
@@ -1354,22 +1282,8 @@ function renderSummary(card, summary) {
       runtimeValue
     );
     times.append(runtime2);
+    header.append(times);
   }
-  const updated = element("span", "bb-thread-hover-card__updated");
-  updated.dataset.updatedAt = String(summary.updatedAt);
-  const updatedValue = element("span", "bb-thread-hover-card__time-value");
-  updatedValue.dataset.timeValue = "";
-  updated.append(
-    icon(
-      Appointment02Icon,
-      "Appointment02Icon",
-      "bb-thread-hover-card__icon bb-thread-hover-card__time-icon"
-    ),
-    element("span", "bb-thread-hover-card__sr-only", "Updated "),
-    updatedValue
-  );
-  times.append(updated);
-  header.append(times);
   const content = [header];
   const showsAssistantMessage = summary.status === "idle" && summary.latestAssistantMessage !== null;
   const summaryMessage = showsAssistantMessage ? summary.latestAssistantMessage : summary.latestUserMessage;
@@ -1493,7 +1407,7 @@ function renderSummary(card, summary) {
     content.push(pullRequestLine);
   }
   card.replaceChildren(...content);
-  refreshTimes(card);
+  refreshRunTime(card);
 }
 function installHoverCards() {
   let card = null;
@@ -1558,7 +1472,7 @@ function installHoverCards() {
     hoverCard.classList.add("is-visible");
     if (timeTimer) clearInterval(timeTimer);
     timeTimer = setInterval(() => {
-      if (card && !card.hidden) refreshTimes(card);
+      if (card && !card.hidden) refreshRunTime(card);
     }, 1e3);
     const cached = cache.get(threadId);
     if (cached) renderSummary(hoverCard, cached.summary);
