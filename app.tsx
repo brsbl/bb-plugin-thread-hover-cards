@@ -1,8 +1,9 @@
 import { definePluginApp } from "@bb/plugin-sdk/app";
 import type { ThreadSummary } from "./server";
-import "./styles.css";
+import { HOVER_CARD_CSS } from "./styles";
 
 const CARD_ID = "bb-thread-hover-card";
+const STYLE_ID = "bb-thread-hover-card-styles";
 const THREAD_TRIGGER_SELECTOR = "a[data-sidebar-thread-id]";
 const THREAD_ROW_SELECTOR = ".group\\/thread-row";
 const OPEN_DELAY_MS = 150;
@@ -221,6 +222,11 @@ function installHoverCards(): HoverCardController {
   let requestGeneration = 0;
   const cache = new Map<string, CachedSummary>();
   const pending = new Map<string, Promise<ThreadSummary>>();
+  const style = element("style", "");
+  style.id = STYLE_ID;
+  style.textContent = HOVER_CARD_CSS;
+  document.getElementById(STYLE_ID)?.remove();
+  document.head.append(style);
 
   function ensureCard(): HTMLDivElement {
     if (card) return card;
@@ -228,6 +234,9 @@ function installHoverCards(): HoverCardController {
     card = element("div", "bb-thread-hover-card");
     card.id = CARD_ID;
     card.hidden = true;
+    card.setAttribute("data-bb-plugin", "thread-hover-cards");
+    card.setAttribute("data-bb-plugin-root", "");
+    card.setAttribute("data-bb-portaled-overlay", "");
     card.setAttribute("role", "group");
     card.setAttribute("aria-label", "Thread summary");
     card.addEventListener("pointerenter", cancelClose);
@@ -467,6 +476,7 @@ function installHoverCards(): HoverCardController {
       window.removeEventListener("scroll", positionCard, true);
       card?.remove();
       card = null;
+      style.remove();
       cache.clear();
       pending.clear();
     },

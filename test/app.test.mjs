@@ -71,12 +71,24 @@ window.document.dispatchEvent(
 
 const trigger = window.document.querySelector("[data-sidebar-thread-id]");
 assert.ok(trigger);
-trigger.focus();
-await new Promise((resolve) => setTimeout(resolve, 20));
+
+const style = window.document.getElementById("bb-thread-hover-card-styles");
+assert.ok(style);
+assert.match(style.textContent, /\.bb-thread-hover-card \{/);
+
+const pointerOver = new window.Event("pointerover", { bubbles: true });
+Object.defineProperties(pointerOver, {
+  pointerType: { value: "mouse" },
+  relatedTarget: { value: null },
+});
+trigger.dispatchEvent(pointerOver);
+await new Promise((resolve) => setTimeout(resolve, 180));
 
 const card = window.document.getElementById("bb-thread-hover-card");
 assert.ok(card);
 assert.equal(card.hidden, false);
+assert.equal(card.dataset.bbPlugin, "thread-hover-cards");
+assert.equal(card.hasAttribute("data-bb-portaled-overlay"), true);
 assert.equal(trigger.getAttribute("aria-describedby"), "bb-thread-hover-card");
 assert.deepEqual(requestBody, { threadId: "thr_1" });
 assert.match(card.textContent, /Working/);
@@ -89,6 +101,7 @@ assert.ok(pullRequestLink);
 assert.equal(pullRequestLink.href, "https://github.com/acme/bb/pull/42");
 assert.equal(pullRequestLink.target, "_blank");
 
+trigger.focus();
 trigger.dispatchEvent(
   new window.KeyboardEvent("keydown", { bubbles: true, key: "Tab" }),
 );
@@ -114,4 +127,5 @@ assert.equal(trigger.hasAttribute("aria-describedby"), false);
 assert.equal(window.document.activeElement, trigger);
 
 globalThis.__bbThreadHoverCards?.dispose();
+assert.equal(window.document.getElementById("bb-thread-hover-card-styles"), null);
 dom.window.close();

@@ -1,3 +1,4 @@
+export const HOVER_CARD_CSS = String.raw`
 .bb-thread-hover-card {
   position: fixed;
   z-index: 50;
@@ -196,3 +197,4 @@
     animation: none;
   }
 }
+`;
