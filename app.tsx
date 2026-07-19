@@ -55,6 +55,20 @@ interface StatusPresentation {
   tone: "danger" | "muted" | "success" | "warning" | "working";
 }
 
+const REASONING_LABELS: Record<
+  NonNullable<ThreadSummary["provider"]["reasoningLevel"]>,
+  string
+> = {
+  none: "None",
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  xhigh: "Extra High",
+  ultracode: "Ultracode",
+  max: "Max",
+  ultra: "Ultra",
+};
+
 function element<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   className: string,
@@ -156,11 +170,27 @@ function pullRequestTone(
 
 function compactLocalPath(path: string): string {
   const normalized = path.trim().replace(/[\\/]+$/, "");
-  const segments = normalized.split(/[\\/]/).filter(Boolean);
-  if (segments.length <= 3) return normalized;
+  if (!normalized) return path.trim() || "Local";
 
   const separator =
     normalized.includes("\\") && !normalized.includes("/") ? "\\" : "/";
+  const abbreviated =
+    separator === "\\"
+      ? normalized.replace(/^[A-Za-z]:\\Users\\[^\\]+(?=\\|$)/i, "~")
+      : normalized.replace(/^\/(?:Users|home)\/[^/]+(?=\/|$)/, "~");
+  const segments = abbreviated.split(/[\\/]/).filter(Boolean);
+
+  if (
+    segments[0] === "~" &&
+    segments[1] === ".bb" &&
+    segments.length > 3
+  ) {
+    return `~${separator}.bb${separator}…${separator}${segments.at(-1)}`;
+  }
+  if (segments.length <= 4) return abbreviated;
+  if (segments[0] === "~") {
+    return `~${separator}…${separator}${segments.slice(-2).join(separator)}`;
+  }
   return `…${separator}${segments.slice(-3).join(separator)}`;
 }
 
@@ -440,7 +470,12 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
     summary.provider.model,
     summary.provider.id,
   );
-  provider.title = `${summary.provider.displayName} · ${modelLabel}`;
+  const reasoningLabel = summary.provider.reasoningLevel
+    ? REASONING_LABELS[summary.provider.reasoningLevel]
+    : null;
+  provider.title = reasoningLabel
+    ? `${summary.provider.displayName} · ${modelLabel} · ${reasoningLabel} reasoning`
+    : `${summary.provider.displayName} · ${modelLabel}`;
   provider.append(
     providerIcon(summary.provider),
     element(
@@ -454,6 +489,15 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
       modelLabel,
     ),
   );
+  if (reasoningLabel) {
+    const reasoning = element(
+      "span",
+      "bb-thread-hover-card__reasoning",
+      reasoningLabel,
+    );
+    reasoning.title = `${reasoningLabel} reasoning`;
+    provider.append(reasoning);
+  }
   header.append(provider);
 
   const times = element("div", "bb-thread-hover-card__times");
@@ -462,12 +506,22 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
     runtime.dataset.turnStartedAt = String(summary.currentTurnStartedAt);
     const runtimeValue = element("span", "bb-thread-hover-card__time-value");
     runtimeValue.dataset.timeValue = "";
+    const runtimeStatus = statusPresentation(summary.status);
+    const usesWorkingStatusIcon =
+      runtimeStatus.animated &&
+      runtimeStatus.icon !== null &&
+      runtimeStatus.iconName !== null;
+    const runtimeIcon = icon(
+      usesWorkingStatusIcon ? runtimeStatus.icon! : AlarmClockIcon,
+      usesWorkingStatusIcon ? runtimeStatus.iconName! : "AlarmClockIcon",
+      "bb-thread-hover-card__icon bb-thread-hover-card__time-icon",
+    );
+    if (usesWorkingStatusIcon) {
+      runtimeIcon.dataset.animated = "true";
+      runtimeIcon.dataset.tone = runtimeStatus.tone;
+    }
     runtime.append(
-      icon(
-        AlarmClockIcon,
-        "AlarmClockIcon",
-        "bb-thread-hover-card__icon bb-thread-hover-card__time-icon",
-      ),
+      runtimeIcon,
       element("span", "bb-thread-hover-card__sr-only", "Run time "),
       runtimeValue,
     );
@@ -516,10 +570,52 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
     content.push(request);
   }
 
-  const repository = element(
-    "section",
-    "bb-thread-hover-card__repository",
-  );
+  const hasMeaningfulProject =
+    summary.repository.name !== "Repository unavailable";
+  if (summary.repository.isGitRepository || hasMeaningfulProject) {
+    const context = element("section", "bb-thread-hover-card__context");
+    context.dataset.hasBranch = String(
+      summary.repository.isGitRepository &&
+        Boolean(summary.repository.branch),
+    );
+    const project = element("span", "bb-thread-hover-card__project");
+    const projectName = element(
+      "span",
+      "bb-thread-hover-card__project-name",
+      summary.repository.name,
+    );
+    projectName.title = summary.repository.name;
+    project.append(
+      icon(
+        Folder01Icon,
+        "Folder01Icon",
+        "bb-thread-hover-card__icon bb-thread-hover-card__meta-icon",
+      ),
+      projectName,
+    );
+    context.append(project);
+
+    if (summary.repository.isGitRepository && summary.repository.branch) {
+      const branch = element("span", "bb-thread-hover-card__branch");
+      const branchName = element(
+        "span",
+        "bb-thread-hover-card__branch-name",
+        summary.repository.branch,
+      );
+      branchName.title = summary.repository.branch;
+      branch.append(
+        icon(
+          GitBranchIcon,
+          "GitBranchIcon",
+          "bb-thread-hover-card__icon bb-thread-hover-card__meta-icon",
+        ),
+        branchName,
+      );
+      context.append(branch);
+    }
+    content.push(context);
+  }
+
   if (!summary.repository.isGitRepository) {
     const localContext =
       summary.repository.path?.trim() ||
@@ -527,81 +623,64 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
         ? "Local"
         : summary.repository.name);
     const local = element(
+      "section",
+      "bb-thread-hover-card__local",
+    );
+    const localPath = element(
       "span",
-      "bb-thread-hover-card__local bb-thread-hover-card__truncate",
+      "bb-thread-hover-card__local-path",
       compactLocalPath(localContext),
     );
-    local.title = localContext;
-    repository.setAttribute("aria-label", `Local workspace: ${localContext}`);
-    repository.append(
+    localPath.title = localContext;
+    local.setAttribute("aria-label", `Local workspace: ${localContext}`);
+    local.append(
       icon(
         LaptopIcon,
         "LaptopIcon",
         "bb-thread-hover-card__icon bb-thread-hover-card__meta-icon",
       ),
-      local,
+      localPath,
     );
-  } else {
-    repository.append(
-      icon(
-        Folder01Icon,
-        "Folder01Icon",
-        "bb-thread-hover-card__icon bb-thread-hover-card__meta-icon",
-      ),
-      element("span", "bb-thread-hover-card__truncate", summary.repository.name),
-    );
-    if (summary.pullRequest.kind === "available") {
-      const pullRequestLine = element("span", "bb-thread-hover-card__pr");
-      pullRequestLine.dataset.kind = summary.pullRequest.kind;
-      const pullRequestLink = element("a", "bb-thread-hover-card__pr-link");
-      pullRequestLink.href = summary.pullRequest.url;
-      pullRequestLink.target = "_blank";
-      pullRequestLink.rel = "noopener noreferrer";
-      pullRequestLink.setAttribute(
-        "aria-label",
-        `Pull request #${summary.pullRequest.number}: ${summary.pullRequest.title}. ${summary.pullRequest.signal}. Opens in a new tab.`,
-      );
-      pullRequestLink.title = summary.pullRequest.title;
-      pullRequestLink.append(
-        icon(
-          LinkSquare01Icon,
-          "LinkSquare01Icon",
-          "bb-thread-hover-card__icon bb-thread-hover-card__link-icon",
-        ),
-        element(
-          "span",
-          "bb-thread-hover-card__truncate",
-          `#${summary.pullRequest.number}`,
-        ),
-      );
-      const pullRequestStatus = element(
-        "span",
-        "bb-thread-hover-card__pr-status",
-        summary.pullRequest.signal,
-      );
-      pullRequestStatus.dataset.tone = pullRequestTone(summary.pullRequest);
-      pullRequestStatus.dataset.state = summary.pullRequest.state;
-      pullRequestLink.append(pullRequestStatus);
-      pullRequestLine.append(pullRequestLink);
-      repository.append(pullRequestLine);
-    }
+    content.push(local);
   }
-  content.push(repository);
-  if (summary.repository.isGitRepository && summary.repository.branch) {
-    const branch = element("section", "bb-thread-hover-card__branch-row");
-    branch.append(
+
+  if (
+    summary.repository.isGitRepository &&
+    summary.pullRequest.kind === "available"
+  ) {
+    const pullRequestLine = element("section", "bb-thread-hover-card__pr");
+    pullRequestLine.dataset.kind = summary.pullRequest.kind;
+    const pullRequestLink = element("a", "bb-thread-hover-card__pr-link");
+    pullRequestLink.href = summary.pullRequest.url;
+    pullRequestLink.target = "_blank";
+    pullRequestLink.rel = "noopener noreferrer";
+    pullRequestLink.setAttribute(
+      "aria-label",
+      `Pull request #${summary.pullRequest.number}: ${summary.pullRequest.title}. ${summary.pullRequest.signal}. Opens in a new tab.`,
+    );
+    pullRequestLink.title = summary.pullRequest.title;
+    pullRequestLink.append(
       icon(
-        GitBranchIcon,
-        "GitBranchIcon",
-        "bb-thread-hover-card__icon bb-thread-hover-card__meta-icon",
+        LinkSquare01Icon,
+        "LinkSquare01Icon",
+        "bb-thread-hover-card__icon bb-thread-hover-card__link-icon",
       ),
       element(
         "span",
-        "bb-thread-hover-card__branch",
-        summary.repository.branch,
+        "bb-thread-hover-card__pr-number",
+        `#${summary.pullRequest.number}`,
       ),
     );
-    content.push(branch);
+    const pullRequestStatus = element(
+      "span",
+      "bb-thread-hover-card__pr-status",
+      summary.pullRequest.signal,
+    );
+    pullRequestStatus.dataset.tone = pullRequestTone(summary.pullRequest);
+    pullRequestStatus.dataset.state = summary.pullRequest.state;
+    pullRequestLink.append(pullRequestStatus);
+    pullRequestLine.append(pullRequestLink);
+    content.push(pullRequestLine);
   }
 
   card.replaceChildren(...content);

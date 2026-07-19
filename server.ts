@@ -39,6 +39,18 @@ export const threadSummarySchema = z
         id: z.string(),
         logoUrl: z.string().nullable(),
         model: z.string(),
+        reasoningLevel: z
+          .enum([
+            "none",
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "ultracode",
+            "max",
+            "ultra",
+          ])
+          .nullable(),
       })
       .strict(),
     repository: z
@@ -293,6 +305,7 @@ export default function plugin(bb: BbPluginApi): void {
           logoUrl: provider?.logoUrl ?? null,
           model:
             model?.displayName ?? selectedModel ?? "Model unavailable",
+          reasoningLevel: executionOptions?.reasoningLevel ?? null,
         },
         repository: {
           branch: environment?.branchName ?? null,

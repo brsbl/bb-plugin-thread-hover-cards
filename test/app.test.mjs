@@ -69,13 +69,14 @@ globalThis.fetch = async (_url, init) => {
           id: "codex",
           logoUrl: null,
           model: "GPT-5.6-Sol",
+          reasoningLevel: "xhigh",
         },
         repository: isLocal
           ? {
               branch: null,
               isGitRepository: false,
               name: "Personal",
-              path: "/Users/test/Code/personal-workspace",
+              path: "/Users/test/.bb/personal-workspaces/env_pmgnprh2j6",
             }
           : {
               branch: "feature/hover-cards",
@@ -129,11 +130,18 @@ assert.match(
   /\.bb-thread-hover-card__message[\s\S]*?font-weight: 350/,
 );
 assert.doesNotMatch(style.textContent, /--font-mono/);
-assert.match(style.textContent, /\.bb-thread-hover-card__branch-row/);
-assert.match(style.textContent, /max-width: 100%/);
+assert.match(style.textContent, /\.bb-thread-hover-card__context/);
 assert.match(
   style.textContent,
-  /\.bb-thread-hover-card__branch[\s\S]*?flex: 1 1 auto;[\s\S]*?text-overflow: ellipsis/,
+  /\.bb-thread-hover-card__project[\s\S]*?max-width: 45%;[\s\S]*?flex: 0 1 auto/,
+);
+assert.match(
+  style.textContent,
+  /\.bb-thread-hover-card__branch \{[\s\S]*?flex: 1 1 0;/,
+);
+assert.match(
+  style.textContent,
+  /\.bb-thread-hover-card__branch-name,[\s\S]*?text-overflow: ellipsis/,
 );
 assert.match(style.textContent, /\.bb-thread-hover-card__pr-status/);
 assert.match(style.textContent, /var\(--success\) 9%, transparent/);
@@ -184,7 +192,19 @@ assert.equal(
     ?.textContent,
   "Codex, ",
 );
-assert.ok(card.querySelector('[data-icon="AlarmClockIcon"]'));
+assert.equal(
+  card
+    .querySelector(".bb-thread-hover-card__runtime")
+    ?.querySelector('[data-icon="Loading03Icon"]')
+    ?.getAttribute("data-animated"),
+  "true",
+);
+assert.equal(
+  card
+    .querySelector(".bb-thread-hover-card__runtime")
+    ?.querySelector('[data-icon="AlarmClockIcon"]'),
+  null,
+);
 assert.ok(card.querySelector('[data-icon="Appointment02Icon"]'));
 assert.match(
   card.textContent,
@@ -193,7 +213,9 @@ assert.match(
 assert.equal(card.querySelector(".bb-thread-hover-card__inline-strong"), null);
 assert.equal(card.querySelector(".bb-thread-hover-card__inline-emphasis"), null);
 assert.match(card.textContent, /5\.6-Sol/);
+assert.match(card.textContent, /Extra High/);
 assert.doesNotMatch(card.textContent, /gpt-5\.6-sol/);
+assert.doesNotMatch(card.textContent, /Full Access|Context window|82%/);
 assert.match(card.textContent, /acme\/bb/);
 assert.match(card.textContent, /#42Checks passing/);
 assert.doesNotMatch(card.textContent, /Latest request/i);
@@ -216,7 +238,19 @@ assert.equal(
   card.querySelector(".bb-thread-hover-card__provider")?.parentElement,
   card.querySelector(".bb-thread-hover-card__header"),
 );
-assert.equal(card.querySelectorAll(".bb-thread-hover-card__repository").length, 1);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__reasoning")?.textContent,
+  "Extra High",
+);
+assert.deepEqual(
+  Array.from(card.children).map((child) => child.className),
+  [
+    "bb-thread-hover-card__header",
+    "bb-thread-hover-card__summary",
+    "bb-thread-hover-card__context",
+    "bb-thread-hover-card__pr",
+  ],
+);
 
 const pullRequestLink = card.querySelector(".bb-thread-hover-card__pr-link");
 assert.ok(pullRequestLink);
@@ -225,18 +259,30 @@ assert.equal(
   "LinkSquare01Icon",
 );
 assert.equal(
-  card.querySelector(".bb-thread-hover-card__repository")?.nextElementSibling,
-  card.querySelector(".bb-thread-hover-card__branch-row"),
+  card.querySelector(".bb-thread-hover-card__context")?.nextElementSibling,
+  card.querySelector(".bb-thread-hover-card__pr"),
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__project")?.parentElement,
+  card.querySelector(".bb-thread-hover-card__context"),
 );
 assert.equal(
   card.querySelector(".bb-thread-hover-card__branch")?.parentElement,
-  card.querySelector(".bb-thread-hover-card__branch-row"),
+  card.querySelector(".bb-thread-hover-card__context"),
 );
 assert.equal(
   card
-    .querySelector(".bb-thread-hover-card__branch-row")
+    .querySelector(".bb-thread-hover-card__branch")
     ?.firstElementChild?.getAttribute("data-icon"),
   "GitBranchIcon",
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__project-name")?.title,
+  "acme/bb",
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__branch-name")?.title,
+  "feature/hover-cards",
 );
 assert.equal(
   card.querySelector(".bb-thread-hover-card__pr .bb-thread-hover-card__meta-label"),
@@ -356,12 +402,23 @@ trigger.focus();
 await new Promise((resolve) => setTimeout(resolve, 20));
 
 assert.equal(card.hidden, false);
-assert.match(card.textContent, /…\/test\/Code\/personal-workspace/);
+assert.match(card.textContent, /~\/\.bb\/…\/env_pmgnprh2j6/);
 assert.equal(
-  card.querySelector(".bb-thread-hover-card__repository")?.getAttribute(
-    "aria-label",
-  ),
-  "Local workspace: /Users/test/Code/personal-workspace",
+  card.querySelector(".bb-thread-hover-card__local")?.getAttribute("aria-label"),
+  "Local workspace: /Users/test/.bb/personal-workspaces/env_pmgnprh2j6",
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__local-path")?.title,
+  "/Users/test/.bb/personal-workspaces/env_pmgnprh2j6",
+);
+assert.deepEqual(
+  Array.from(card.children).map((child) => child.className),
+  [
+    "bb-thread-hover-card__header",
+    "bb-thread-hover-card__summary",
+    "bb-thread-hover-card__context",
+    "bb-thread-hover-card__local",
+  ],
 );
 assert.match(
   card.textContent,
@@ -396,7 +453,14 @@ assert.equal(card.hidden, false);
 assert.match(card.textContent, /acme\/bb/);
 assert.doesNotMatch(card.textContent, /No PR/);
 assert.equal(card.querySelector(".bb-thread-hover-card__pr"), null);
-assert.equal(card.querySelectorAll(".bb-thread-hover-card__repository").length, 1);
+assert.deepEqual(
+  Array.from(card.children).map((child) => child.className),
+  [
+    "bb-thread-hover-card__header",
+    "bb-thread-hover-card__summary",
+    "bb-thread-hover-card__context",
+  ],
+);
 assert.deepEqual(requestBodies, [
   { threadId: "thr_1" },
   { threadId: "thr_1" },

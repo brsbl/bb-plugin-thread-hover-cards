@@ -102,7 +102,13 @@ const fakeBb = {
     },
     threads: {
       async defaultExecutionOptions() {
-        return { model: "gpt-5.6-sol" };
+        return {
+          model: "gpt-5.6-sol",
+          permissionMode: "full",
+          providerId: "codex",
+          reasoningLevel: "xhigh",
+          serviceTier: "default",
+        };
       },
       events: {
         async list(input: {
@@ -148,6 +154,11 @@ const fakeBb = {
       },
       async timeline() {
         return {
+          contextWindowUsage: {
+            estimated: false,
+            modelContextWindow: 100_000,
+            usedTokens: 82_000,
+          },
           maxSeq: timelineMaxSeq,
           timelinePage: {
             olderCursor:
@@ -182,6 +193,7 @@ assert.deepEqual(summary, {
     id: "codex",
     logoUrl: null,
     model: "GPT-5.6-Sol",
+    reasoningLevel: "xhigh",
   },
   repository: {
     branch: "feature/hover-cards",
@@ -192,6 +204,8 @@ assert.deepEqual(summary, {
   status: "active",
   updatedAt: 123,
 });
+assert.equal("permissionMode" in summary.provider, false);
+assert.equal("contextWindowUsage" in summary, false);
 assert.equal(outputCalls, 0);
 assert.deepEqual(eventListInputs, [
   { afterSeq: "9", limit: "256", threadId: "thr_1" },

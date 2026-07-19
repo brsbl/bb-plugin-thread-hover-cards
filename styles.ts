@@ -34,8 +34,10 @@ export const HOVER_CARD_CSS = String.raw`
 .bb-thread-hover-card__header,
 .bb-thread-hover-card__provider,
 .bb-thread-hover-card__times,
-.bb-thread-hover-card__repository,
-.bb-thread-hover-card__branch-row,
+.bb-thread-hover-card__context,
+.bb-thread-hover-card__project,
+.bb-thread-hover-card__branch,
+.bb-thread-hover-card__local,
 .bb-thread-hover-card__pr,
 .bb-thread-hover-card__meta {
   display: flex;
@@ -76,8 +78,7 @@ export const HOVER_CARD_CSS = String.raw`
 .bb-thread-hover-card__runtime,
 .bb-thread-hover-card__updated,
 .bb-thread-hover-card__loading,
-.bb-thread-hover-card__meta-label,
-.bb-thread-hover-card__repository {
+.bb-thread-hover-card__meta-label {
   color: var(--muted-foreground);
 }
 
@@ -96,8 +97,14 @@ export const HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__provider {
   flex: 1 1 auto;
-  gap: 0.375rem;
+  gap: 0.3125rem;
   color: var(--muted-foreground);
+}
+
+.bb-thread-hover-card__reasoning {
+  flex: none;
+  color: color-mix(in srgb, var(--muted-foreground) 76%, transparent);
+  white-space: nowrap;
 }
 
 .bb-thread-hover-card__times {
@@ -111,6 +118,10 @@ export const HOVER_CARD_CSS = String.raw`
   width: 0.75rem;
   height: 0.75rem;
   color: color-mix(in srgb, var(--muted-foreground) 74%, transparent);
+}
+
+.bb-thread-hover-card__time-icon[data-tone="working"] {
+  color: color-mix(in srgb, var(--muted-foreground) 62%, transparent);
 }
 
 .bb-thread-hover-card__summary,
@@ -160,25 +171,60 @@ export const HOVER_CARD_CSS = String.raw`
   color: var(--muted-foreground);
 }
 
-.bb-thread-hover-card__repository {
-  gap: 0.375rem;
+.bb-thread-hover-card__context {
+  gap: 0.75rem;
   margin-top: 0.375rem;
   overflow: hidden;
+  color: var(--muted-foreground);
   font-size: 0.6875rem;
   white-space: nowrap;
 }
 
-.bb-thread-hover-card__branch-row {
+.bb-thread-hover-card__project,
+.bb-thread-hover-card__branch {
+  gap: 0.375rem;
+  overflow: hidden;
+}
+
+.bb-thread-hover-card__project {
+  max-width: 45%;
+  flex: 0 1 auto;
+}
+
+.bb-thread-hover-card__context[data-has-branch="false"]
+  .bb-thread-hover-card__project {
+  max-width: 100%;
+  flex: 1 1 auto;
+}
+
+.bb-thread-hover-card__branch {
+  flex: 1 1 0;
+}
+
+.bb-thread-hover-card__project-name,
+.bb-thread-hover-card__branch-name,
+.bb-thread-hover-card__local-path {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bb-thread-hover-card__project-name,
+.bb-thread-hover-card__branch-name,
+.bb-thread-hover-card__local-path {
+  flex: 1 1 auto;
+}
+
+.bb-thread-hover-card__local,
+.bb-thread-hover-card__pr {
   gap: 0.375rem;
   margin-top: 0.3125rem;
   overflow: hidden;
   color: var(--muted-foreground);
   font-size: 0.6875rem;
-}
-
-.bb-thread-hover-card__repository > .bb-thread-hover-card__truncate,
-.bb-thread-hover-card__local {
-  color: var(--muted-foreground);
+  white-space: nowrap;
 }
 
 .bb-thread-hover-card__meta {
@@ -202,24 +248,12 @@ export const HOVER_CARD_CSS = String.raw`
   white-space: nowrap;
 }
 
-.bb-thread-hover-card__branch {
-  max-width: 100%;
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--muted-foreground);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .bb-thread-hover-card__pr {
-  flex: none;
-  gap: 0.25rem;
-  margin-left: auto;
+  align-items: center;
 }
 
 .bb-thread-hover-card__pr-link {
-  display: flex;
+  display: inline-flex;
   min-width: 0;
   align-items: center;
   gap: 0.25rem;
@@ -227,6 +261,10 @@ export const HOVER_CARD_CSS = String.raw`
   color: var(--foreground);
   outline: none;
   text-decoration: none;
+}
+
+.bb-thread-hover-card__pr-number {
+  flex: none;
 }
 
 .bb-thread-hover-card__inline-code {
@@ -338,13 +376,15 @@ export const HOVER_CARD_CSS = String.raw`
   }
 }
 
-.bb-thread-hover-card__status-icon[data-animated="true"] {
+.bb-thread-hover-card__status-icon[data-animated="true"],
+.bb-thread-hover-card__time-icon[data-animated="true"] {
   animation: bb-thread-hover-card-spin 1s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .bb-thread-hover-card.is-visible,
-  .bb-thread-hover-card__status-icon[data-animated="true"] {
+  .bb-thread-hover-card__status-icon[data-animated="true"],
+  .bb-thread-hover-card__time-icon[data-animated="true"] {
     animation: none;
   }
 }

@@ -14559,7 +14559,17 @@ var threadSummarySchema = external_exports.object({
     displayName: external_exports.string(),
     id: external_exports.string(),
     logoUrl: external_exports.string().nullable(),
-    model: external_exports.string()
+    model: external_exports.string(),
+    reasoningLevel: external_exports.enum([
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "ultracode",
+      "max",
+      "ultra"
+    ]).nullable()
   }).strict(),
   repository: external_exports.object({
     branch: external_exports.string().nullable(),
@@ -14737,7 +14747,8 @@ function plugin(bb) {
           displayName: provider?.displayName ?? thread.providerId,
           id: thread.providerId,
           logoUrl: provider?.logoUrl ?? null,
-          model: model?.displayName ?? selectedModel ?? "Model unavailable"
+          model: model?.displayName ?? selectedModel ?? "Model unavailable",
+          reasoningLevel: executionOptions?.reasoningLevel ?? null
         },
         repository: {
           branch: environment?.branchName ?? null,
