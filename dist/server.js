@@ -14615,7 +14615,7 @@ function isRunningStatus(status) {
   return status === "active" || status === "host-reconnecting" || status === "provisioning" || status === "starting" || status === "stopping";
 }
 var SUMMARY_LOOKUP_TIMEOUT_MS = 2500;
-var ACTIVE_TURN_EVENT_LIMIT = "16";
+var ACTIVE_TURN_EVENT_WAIT_MS = "1";
 async function currentTurnTiming(bb, threadId, status, signal) {
   if (!isRunningStatus(status) && status !== "idle") {
     return { completedAt: null, startedAt: null };
@@ -14641,20 +14641,19 @@ async function currentTurnTiming(bb, threadId, status, signal) {
     return { completedAt: null, startedAt: null };
   }
   const anchorSeq = timeline.timelinePage.olderCursor?.anchorSeq ?? 1;
-  const events = await safely(
-    bb.sdk.threads.events.list({
+  const started = await safely(
+    bb.sdk.threads.events.wait({
       afterSeq: String(Math.max(0, anchorSeq - 1)),
-      limit: ACTIVE_TURN_EVENT_LIMIT,
       signal,
-      threadId
+      threadId,
+      type: "turn/started",
+      waitMs: ACTIVE_TURN_EVENT_WAIT_MS
     })
   );
-  const started = events?.find(
-    (event) => event.type === "turn/started" && event.data.parentToolCallId === void 0 && event.scope.kind === "turn"
-  );
+  const isRootTurn = started?.type === "turn/started" && started.data.parentToolCallId === void 0 && started.scope.kind === "turn";
   return {
     completedAt: null,
-    startedAt: started?.createdAt ?? null
+    startedAt: isRootTurn ? started.createdAt : null
   };
 }
 var PULL_REQUEST_SIGNALS = {

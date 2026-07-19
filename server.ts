@@ -135,7 +135,7 @@ interface TurnTiming {
 }
 
 const SUMMARY_LOOKUP_TIMEOUT_MS = 2_500;
-const ACTIVE_TURN_EVENT_LIMIT = "16";
+const ACTIVE_TURN_EVENT_WAIT_MS = "1";
 
 async function currentTurnTiming(
   bb: BbPluginApi,
@@ -172,24 +172,23 @@ async function currentTurnTiming(
   }
 
   const anchorSeq = timeline.timelinePage.olderCursor?.anchorSeq ?? 1;
-  const events = await safely(
-    bb.sdk.threads.events.list({
+  const started = await safely(
+    bb.sdk.threads.events.wait({
       afterSeq: String(Math.max(0, anchorSeq - 1)),
-      limit: ACTIVE_TURN_EVENT_LIMIT,
       signal,
       threadId,
+      type: "turn/started",
+      waitMs: ACTIVE_TURN_EVENT_WAIT_MS,
     }),
   );
-  const started = events?.find(
-    (event) =>
-      event.type === "turn/started" &&
-      event.data.parentToolCallId === undefined &&
-      event.scope.kind === "turn",
-  );
+  const isRootTurn =
+    started?.type === "turn/started" &&
+    started.data.parentToolCallId === undefined &&
+    started.scope.kind === "turn";
 
   return {
     completedAt: null,
-    startedAt: started?.createdAt ?? null,
+    startedAt: isRootTurn ? started.createdAt : null,
   };
 }
 
