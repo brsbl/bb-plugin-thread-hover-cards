@@ -150,17 +150,21 @@ assert.doesNotMatch(style.textContent, /--font-mono/);
 assert.match(style.textContent, /\.bb-thread-hover-card__context/);
 assert.match(
   style.textContent,
-  /\.bb-thread-hover-card__project[\s\S]*?max-width: 45%;[\s\S]*?flex: 0 1 auto/,
+  /\.bb-thread-hover-card__project[\s\S]*?max-width: 38%;[\s\S]*?flex: 0 1 auto/,
 );
 assert.match(
   style.textContent,
-  /\.bb-thread-hover-card__branch \{[\s\S]*?flex: 1 1 0;/,
+  /\.bb-thread-hover-card__branch \{[\s\S]*?flex: 1 1 4rem;/,
 );
 assert.match(
   style.textContent,
   /\.bb-thread-hover-card__branch-name,[\s\S]*?text-overflow: ellipsis/,
 );
 assert.match(style.textContent, /\.bb-thread-hover-card__pr-status/);
+assert.match(
+  style.textContent,
+  /\.bb-thread-hover-card__pr \{[\s\S]*?flex: none;[\s\S]*?overflow: visible/,
+);
 assert.match(style.textContent, /var\(--success\) 9%, transparent/);
 assert.match(style.textContent, /var\(--pr-merged\) 9%, transparent/);
 assert.match(style.textContent, /@supports not/);
@@ -272,7 +276,6 @@ assert.deepEqual(
     "bb-thread-hover-card__header",
     "bb-thread-hover-card__summary",
     "bb-thread-hover-card__context",
-    "bb-thread-hover-card__pr",
   ],
 );
 
@@ -283,8 +286,8 @@ assert.equal(
   "LinkSquare01Icon",
 );
 assert.equal(
-  card.querySelector(".bb-thread-hover-card__context")?.nextElementSibling,
-  card.querySelector(".bb-thread-hover-card__pr"),
+  card.querySelector(".bb-thread-hover-card__pr")?.parentElement,
+  card.querySelector(".bb-thread-hover-card__context"),
 );
 assert.equal(
   card.querySelector(".bb-thread-hover-card__project")?.parentElement,
@@ -293,6 +296,16 @@ assert.equal(
 assert.equal(
   card.querySelector(".bb-thread-hover-card__branch")?.parentElement,
   card.querySelector(".bb-thread-hover-card__context"),
+);
+assert.deepEqual(
+  Array.from(
+    card.querySelector(".bb-thread-hover-card__context")?.children ?? [],
+  ).map((child) => child.className),
+  [
+    "bb-thread-hover-card__project",
+    "bb-thread-hover-card__branch",
+    "bb-thread-hover-card__pr",
+  ],
 );
 assert.equal(
   card

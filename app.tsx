@@ -587,6 +587,45 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
       );
       context.append(branch);
     }
+
+    if (
+      summary.repository.isGitRepository &&
+      summary.pullRequest.kind === "available"
+    ) {
+      const pullRequest = element("span", "bb-thread-hover-card__pr");
+      pullRequest.dataset.kind = summary.pullRequest.kind;
+      const pullRequestLink = element("a", "bb-thread-hover-card__pr-link");
+      pullRequestLink.href = summary.pullRequest.url;
+      pullRequestLink.target = "_blank";
+      pullRequestLink.rel = "noopener noreferrer";
+      pullRequestLink.setAttribute(
+        "aria-label",
+        `Pull request #${summary.pullRequest.number}: ${summary.pullRequest.title}. ${summary.pullRequest.signal}. Opens in a new tab.`,
+      );
+      pullRequestLink.title = summary.pullRequest.title;
+      pullRequestLink.append(
+        icon(
+          LinkSquare01Icon,
+          "LinkSquare01Icon",
+          "bb-thread-hover-card__icon bb-thread-hover-card__link-icon",
+        ),
+        element(
+          "span",
+          "bb-thread-hover-card__pr-number",
+          `#${summary.pullRequest.number}`,
+        ),
+      );
+      const pullRequestStatus = element(
+        "span",
+        "bb-thread-hover-card__pr-status",
+        summary.pullRequest.signal,
+      );
+      pullRequestStatus.dataset.tone = pullRequestTone(summary.pullRequest);
+      pullRequestStatus.dataset.state = summary.pullRequest.state;
+      pullRequestLink.append(pullRequestStatus);
+      pullRequest.append(pullRequestLink);
+      context.append(pullRequest);
+    }
     content.push(context);
   }
 
@@ -616,45 +655,6 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
       localPath,
     );
     content.push(local);
-  }
-
-  if (
-    summary.repository.isGitRepository &&
-    summary.pullRequest.kind === "available"
-  ) {
-    const pullRequestLine = element("section", "bb-thread-hover-card__pr");
-    pullRequestLine.dataset.kind = summary.pullRequest.kind;
-    const pullRequestLink = element("a", "bb-thread-hover-card__pr-link");
-    pullRequestLink.href = summary.pullRequest.url;
-    pullRequestLink.target = "_blank";
-    pullRequestLink.rel = "noopener noreferrer";
-    pullRequestLink.setAttribute(
-      "aria-label",
-      `Pull request #${summary.pullRequest.number}: ${summary.pullRequest.title}. ${summary.pullRequest.signal}. Opens in a new tab.`,
-    );
-    pullRequestLink.title = summary.pullRequest.title;
-    pullRequestLink.append(
-      icon(
-        LinkSquare01Icon,
-        "LinkSquare01Icon",
-        "bb-thread-hover-card__icon bb-thread-hover-card__link-icon",
-      ),
-      element(
-        "span",
-        "bb-thread-hover-card__pr-number",
-        `#${summary.pullRequest.number}`,
-      ),
-    );
-    const pullRequestStatus = element(
-      "span",
-      "bb-thread-hover-card__pr-status",
-      summary.pullRequest.signal,
-    );
-    pullRequestStatus.dataset.tone = pullRequestTone(summary.pullRequest);
-    pullRequestStatus.dataset.state = summary.pullRequest.state;
-    pullRequestLink.append(pullRequestStatus);
-    pullRequestLine.append(pullRequestLink);
-    content.push(pullRequestLine);
   }
 
   card.replaceChildren(...content);

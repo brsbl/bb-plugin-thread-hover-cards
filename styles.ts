@@ -180,7 +180,7 @@ export const HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__context {
-  gap: 0.75rem;
+  gap: 0.5rem;
   margin-top: 0.375rem;
   overflow: hidden;
   color: var(--muted-foreground);
@@ -190,12 +190,12 @@ export const HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__project,
 .bb-thread-hover-card__branch {
-  gap: 0.375rem;
+  gap: 0.25rem;
   overflow: hidden;
 }
 
 .bb-thread-hover-card__project {
-  max-width: 45%;
+  max-width: 38%;
   flex: 0 1 auto;
 }
 
@@ -206,7 +206,7 @@ export const HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__branch {
-  flex: 1 1 0;
+  flex: 1 1 4rem;
 }
 
 .bb-thread-hover-card__project-name,
@@ -225,8 +225,7 @@ export const HOVER_CARD_CSS = String.raw`
   flex: 1 1 auto;
 }
 
-.bb-thread-hover-card__local,
-.bb-thread-hover-card__pr {
+.bb-thread-hover-card__local {
   gap: 0.375rem;
   margin-top: 0.3125rem;
   overflow: hidden;
@@ -257,7 +256,9 @@ export const HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__pr {
+  flex: none;
   align-items: center;
+  overflow: visible;
 }
 
 .bb-thread-hover-card__pr-link {
