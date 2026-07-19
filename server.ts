@@ -136,6 +136,7 @@ interface TurnTiming {
 
 const SUMMARY_LOOKUP_TIMEOUT_MS = 2_500;
 const TARGET_EVENT_LOOKUP_LIMIT = 8;
+const TARGET_EVENT_WAIT_MS = "1";
 
 async function currentTurnTiming(
   bb: BbPluginApi,
@@ -171,7 +172,7 @@ async function currentTurnTiming(
         signal,
         threadId,
         type: "turn/started",
-        waitMs: "0",
+        waitMs: TARGET_EVENT_WAIT_MS,
       }),
     );
     if (!event) break;
@@ -198,7 +199,7 @@ async function currentTurnTiming(
         signal,
         threadId,
         type: "turn/completed",
-        waitMs: "0",
+        waitMs: TARGET_EVENT_WAIT_MS,
       }),
     );
     if (!event) break;

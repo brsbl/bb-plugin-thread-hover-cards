@@ -14616,6 +14616,7 @@ function isRunningStatus(status) {
 }
 var SUMMARY_LOOKUP_TIMEOUT_MS = 2500;
 var TARGET_EVENT_LOOKUP_LIMIT = 8;
+var TARGET_EVENT_WAIT_MS = "1";
 async function currentTurnTiming(bb, threadId, status, signal) {
   if (!isRunningStatus(status) && status !== "idle") {
     return { completedAt: null, startedAt: null };
@@ -14642,7 +14643,7 @@ async function currentTurnTiming(bb, threadId, status, signal) {
         signal,
         threadId,
         type: "turn/started",
-        waitMs: "0"
+        waitMs: TARGET_EVENT_WAIT_MS
       })
     );
     if (!event) break;
@@ -14663,7 +14664,7 @@ async function currentTurnTiming(bb, threadId, status, signal) {
         signal,
         threadId,
         type: "turn/completed",
-        waitMs: "0"
+        waitMs: TARGET_EVENT_WAIT_MS
       })
     );
     if (!event) break;

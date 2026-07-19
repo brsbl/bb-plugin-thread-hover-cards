@@ -230,7 +230,7 @@ assert.deepEqual(eventWaitInputs, [
     afterSeq: "9",
     threadId: "thr_1",
     type: "turn/started",
-    waitMs: "0",
+    waitMs: "1",
   },
 ]);
 
@@ -260,13 +260,13 @@ assert.deepEqual(eventWaitInputs, [
     afterSeq: "9",
     threadId: "thr_1",
     type: "turn/started",
-    waitMs: "0",
+    waitMs: "1",
   },
   {
     afterSeq: "11",
     threadId: "thr_1",
     type: "turn/completed",
-    waitMs: "0",
+    waitMs: "1",
   },
 ]);
 
