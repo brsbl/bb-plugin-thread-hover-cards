@@ -40,6 +40,7 @@ globalThis.fetch = async (_url, init) => {
   const isLocal = request.threadId === "thr_local";
   const hasNoPullRequest = request.threadId === "thr_no_pr";
   const pullRequestUnavailable = request.threadId === "thr_pr_unavailable";
+  const isDraftPullRequest = request.threadId === "thr_draft_pr";
   const response = new Response(
     JSON.stringify({
       ok: true,
@@ -56,13 +57,13 @@ globalThis.fetch = async (_url, init) => {
             : pullRequestUnavailable
               ? { kind: "unavailable" }
               : {
-              kind: "available",
-              number: 42,
-              signal: "Checks passing",
-              state: "open",
-              title: "Thread previews",
-              url: "https://github.com/acme/bb/pull/42",
-            },
+                  kind: "available",
+                  number: 42,
+                  signal: isDraftPullRequest ? "Draft" : "Checks passing",
+                  state: isDraftPullRequest ? "draft" : "open",
+                  title: "Thread previews",
+                  url: "https://github.com/acme/bb/pull/42",
+                },
         provider: {
           displayName: "Codex",
           id: "codex",
@@ -74,11 +75,13 @@ globalThis.fetch = async (_url, init) => {
               branch: null,
               isGitRepository: false,
               name: "Personal",
+              path: "/Users/test/Code/personal-workspace",
             }
           : {
               branch: "feature/hover-cards",
               isGitRepository: true,
               name: "acme/bb",
+              path: "/workspace/acme/bb",
             },
         status: isLocal ? "idle" : "active",
         updatedAt: Date.now(),
@@ -128,8 +131,13 @@ assert.match(
 assert.doesNotMatch(style.textContent, /--font-mono/);
 assert.match(style.textContent, /\.bb-thread-hover-card__branch-row/);
 assert.match(style.textContent, /max-width: 100%/);
+assert.match(
+  style.textContent,
+  /\.bb-thread-hover-card__branch[\s\S]*?flex: 1 1 auto;[\s\S]*?text-overflow: ellipsis/,
+);
 assert.match(style.textContent, /\.bb-thread-hover-card__pr-status/);
 assert.match(style.textContent, /var\(--success\) 9%, transparent/);
+assert.match(style.textContent, /var\(--pr-merged\) 9%, transparent/);
 assert.match(style.textContent, /@supports not/);
 
 const pointerOver = new window.Event("pointerover", { bubbles: true });
@@ -202,6 +210,7 @@ assert.ok(
     ?.querySelector('[data-icon="OpenAiIcon"]'),
 );
 assert.ok(card.querySelector('[data-icon="Folder01Icon"]'));
+assert.ok(card.querySelector('[data-icon="GitBranchIcon"]'));
 assert.ok(card.querySelector('[data-icon="LinkSquare01Icon"]'));
 assert.equal(
   card.querySelector(".bb-thread-hover-card__provider")?.parentElement,
@@ -224,6 +233,12 @@ assert.equal(
   card.querySelector(".bb-thread-hover-card__branch-row"),
 );
 assert.equal(
+  card
+    .querySelector(".bb-thread-hover-card__branch-row")
+    ?.firstElementChild?.getAttribute("data-icon"),
+  "GitBranchIcon",
+);
+assert.equal(
   card.querySelector(".bb-thread-hover-card__pr .bb-thread-hover-card__meta-label"),
   null,
 );
@@ -232,6 +247,10 @@ assert.equal(pullRequestLink.target, "_blank");
 assert.equal(
   card.querySelector(".bb-thread-hover-card__pr-status")?.dataset.tone,
   "success",
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__pr-status")?.dataset.state,
+  "open",
 );
 
 trigger.focus();
@@ -337,7 +356,13 @@ trigger.focus();
 await new Promise((resolve) => setTimeout(resolve, 20));
 
 assert.equal(card.hidden, false);
-assert.match(card.textContent, /Local/);
+assert.match(card.textContent, /…\/test\/Code\/personal-workspace/);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__repository")?.getAttribute(
+    "aria-label",
+  ),
+  "Local workspace: /Users/test/Code/personal-workspace",
+);
 assert.match(
   card.textContent,
   /Done—hover cards are ready for foo_bar_baz, _literal_, and tests with Cmd\+R\./,
@@ -396,6 +421,31 @@ assert.deepEqual(requestBodies, [
   { threadId: "thr_pr_unavailable" },
 ]);
 
+trigger.blur();
+await new Promise((resolve) => setTimeout(resolve, 140));
+trigger.dataset.sidebarThreadId = "thr_draft_pr";
+trigger.focus();
+await new Promise((resolve) => setTimeout(resolve, 20));
+
+assert.equal(card.hidden, false);
+assert.match(card.textContent, /#42Draft/);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__pr-status")?.dataset.tone,
+  "muted",
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__pr-status")?.dataset.state,
+  "draft",
+);
+assert.deepEqual(requestBodies, [
+  { threadId: "thr_1" },
+  { threadId: "thr_1" },
+  { threadId: "thr_local" },
+  { threadId: "thr_no_pr" },
+  { threadId: "thr_pr_unavailable" },
+  { threadId: "thr_draft_pr" },
+]);
+
 const pluginCssLink = window.document.querySelector(
   'link[data-bb-plugin-css="thread-hover-cards"]',
 );
@@ -436,6 +486,7 @@ assert.deepEqual(requestBodies, [
   { threadId: "thr_local" },
   { threadId: "thr_no_pr" },
   { threadId: "thr_pr_unavailable" },
+  { threadId: "thr_draft_pr" },
   { threadId: "thr_reload" },
 ]);
 trigger.focus();

@@ -7,6 +7,7 @@ import {
   ClaudeIcon,
   CursorIcon,
   Folder01Icon,
+  GitBranchIcon,
   LaptopIcon,
   LinkSquare01Icon,
   Loading03Icon,
@@ -140,31 +141,27 @@ function statusPresentation(
 
 function pullRequestTone(
   pullRequest: Extract<ThreadSummary["pullRequest"], { kind: "available" }>,
-): "danger" | "muted" | "success" | "warning" {
-  const signal = pullRequest.signal.toLowerCase();
-  if (
-    signal.includes("failing") ||
-    signal.includes("blocked") ||
-    signal.includes("changes requested") ||
-    signal.includes("conflict")
-  ) {
-    return "danger";
+): "danger" | "merged" | "muted" | "success" {
+  switch (pullRequest.state) {
+    case "open":
+      return "success";
+    case "draft":
+      return "muted";
+    case "closed":
+      return "danger";
+    case "merged":
+      return "merged";
   }
-  if (
-    pullRequest.state === "merged" ||
-    signal.includes("passing") ||
-    signal.includes("ready to merge")
-  ) {
-    return "success";
-  }
-  if (
-    pullRequest.state === "draft" ||
-    signal.includes("pending") ||
-    signal.includes("review requested")
-  ) {
-    return "warning";
-  }
-  return "muted";
+}
+
+function compactLocalPath(path: string): string {
+  const normalized = path.trim().replace(/[\\/]+$/, "");
+  const segments = normalized.split(/[\\/]/).filter(Boolean);
+  if (segments.length <= 3) return normalized;
+
+  const separator =
+    normalized.includes("\\") && !normalized.includes("/") ? "\\" : "/";
+  return `…${separator}${segments.slice(-3).join(separator)}`;
 }
 
 function findThreadTrigger(target: EventTarget | null): HTMLAnchorElement | null {
@@ -524,13 +521,25 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
     "bb-thread-hover-card__repository",
   );
   if (!summary.repository.isGitRepository) {
+    const localContext =
+      summary.repository.path?.trim() ||
+      (summary.repository.name === "Repository unavailable"
+        ? "Local"
+        : summary.repository.name);
+    const local = element(
+      "span",
+      "bb-thread-hover-card__local bb-thread-hover-card__truncate",
+      compactLocalPath(localContext),
+    );
+    local.title = localContext;
+    repository.setAttribute("aria-label", `Local workspace: ${localContext}`);
     repository.append(
       icon(
         LaptopIcon,
         "LaptopIcon",
         "bb-thread-hover-card__icon bb-thread-hover-card__meta-icon",
       ),
-      element("span", "bb-thread-hover-card__local", "Local"),
+      local,
     );
   } else {
     repository.append(
@@ -571,6 +580,7 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
         summary.pullRequest.signal,
       );
       pullRequestStatus.dataset.tone = pullRequestTone(summary.pullRequest);
+      pullRequestStatus.dataset.state = summary.pullRequest.state;
       pullRequestLink.append(pullRequestStatus);
       pullRequestLine.append(pullRequestLink);
       repository.append(pullRequestLine);
@@ -580,6 +590,11 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
   if (summary.repository.isGitRepository && summary.repository.branch) {
     const branch = element("section", "bb-thread-hover-card__branch-row");
     branch.append(
+      icon(
+        GitBranchIcon,
+        "GitBranchIcon",
+        "bb-thread-hover-card__icon bb-thread-hover-card__meta-icon",
+      ),
       element(
         "span",
         "bb-thread-hover-card__branch",

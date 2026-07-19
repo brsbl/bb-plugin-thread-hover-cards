@@ -14564,7 +14564,8 @@ var threadSummarySchema = external_exports.object({
   repository: external_exports.object({
     branch: external_exports.string().nullable(),
     isGitRepository: external_exports.boolean(),
-    name: external_exports.string()
+    name: external_exports.string(),
+    path: external_exports.string().nullable()
   }).strict(),
   status: displayStatusSchema,
   updatedAt: external_exports.number()
@@ -14744,7 +14745,8 @@ function plugin(bb) {
           name: repositoryName(
             project?.gitRemoteUrl ?? null,
             project?.name ?? "Repository unavailable"
-          )
+          ),
+          path: environment?.path ?? null
         },
         status: thread.runtime.displayStatus,
         updatedAt: thread.updatedAt

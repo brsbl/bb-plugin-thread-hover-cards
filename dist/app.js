@@ -166,6 +166,63 @@ var Folder01Icon = [
     }
   ]
 ];
+var GitBranchIcon = [
+  [
+    "path",
+    {
+      d: "M7 19H13C15.8284 19 17.2426 19 18.1213 18.1213C19 17.2426 19 15.8284 19 13V10M19 10C19.7002 10 21.0085 11.9943 21.5 12.5M19 10C18.2998 10 16.9915 11.9943 16.5 12.5",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "0"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M5 7L5 17",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "1"
+    }
+  ],
+  [
+    "circle",
+    {
+      cx: "5",
+      cy: "5",
+      r: "2",
+      stroke: "currentColor",
+      strokeWidth: "1.5",
+      key: "2"
+    }
+  ],
+  [
+    "circle",
+    {
+      cx: "19",
+      cy: "5",
+      r: "2",
+      stroke: "currentColor",
+      strokeWidth: "1.5",
+      key: "3"
+    }
+  ],
+  [
+    "circle",
+    {
+      cx: "5",
+      cy: "19",
+      r: "2",
+      stroke: "currentColor",
+      strokeWidth: "1.5",
+      key: "4"
+    }
+  ]
+];
 var LinkSquare01Icon = [
   [
     "path",
@@ -575,8 +632,11 @@ var HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__branch-row {
+  gap: 0.375rem;
   margin-top: 0.3125rem;
   overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
 }
 
 .bb-thread-hover-card__repository > .bb-thread-hover-card__truncate,
@@ -607,14 +667,10 @@ var HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__branch {
   max-width: 100%;
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
-  padding: 0.0625rem 0.3rem;
-  border-radius: 0.25rem;
-  background: color-mix(in srgb, var(--foreground) 5%, transparent);
   color: var(--muted-foreground);
-  font-size: 0.6875rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -690,20 +746,18 @@ var HOVER_CARD_CSS = String.raw`
   color: color-mix(in oklab, var(--success) 80%, var(--foreground));
 }
 
-.bb-thread-hover-card__pr-status[data-tone="warning"] {
-  border-color:
-    color-mix(in oklab, var(--warning-text, var(--warning)) 18%, transparent);
-  background:
-    color-mix(in oklab, var(--warning-text, var(--warning)) 8%, transparent);
-  color: var(--warning-text, var(--warning));
-}
-
 .bb-thread-hover-card__pr-status[data-tone="danger"] {
   border-color:
     color-mix(in oklab, var(--destructive-text, var(--destructive)) 18%, transparent);
   background:
     color-mix(in oklab, var(--destructive-text, var(--destructive)) 8%, transparent);
   color: var(--destructive-text, var(--destructive));
+}
+
+.bb-thread-hover-card__pr-status[data-tone="merged"] {
+  border-color: color-mix(in oklab, var(--pr-merged) 18%, transparent);
+  background: color-mix(in oklab, var(--pr-merged) 9%, transparent);
+  color: var(--pr-merged);
 }
 
 .bb-thread-hover-card__link-icon {
@@ -941,17 +995,23 @@ function statusPresentation(status) {
   }
 }
 function pullRequestTone(pullRequest) {
-  const signal = pullRequest.signal.toLowerCase();
-  if (signal.includes("failing") || signal.includes("blocked") || signal.includes("changes requested") || signal.includes("conflict")) {
-    return "danger";
+  switch (pullRequest.state) {
+    case "open":
+      return "success";
+    case "draft":
+      return "muted";
+    case "closed":
+      return "danger";
+    case "merged":
+      return "merged";
   }
-  if (pullRequest.state === "merged" || signal.includes("passing") || signal.includes("ready to merge")) {
-    return "success";
-  }
-  if (pullRequest.state === "draft" || signal.includes("pending") || signal.includes("review requested")) {
-    return "warning";
-  }
-  return "muted";
+}
+function compactLocalPath(path) {
+  const normalized = path.trim().replace(/[\\/]+$/, "");
+  const segments = normalized.split(/[\\/]/).filter(Boolean);
+  if (segments.length <= 3) return normalized;
+  const separator = normalized.includes("\\") && !normalized.includes("/") ? "\\" : "/";
+  return `\u2026${separator}${segments.slice(-3).join(separator)}`;
 }
 function findThreadTrigger(target) {
   if (!(target instanceof Element)) return null;
@@ -1245,13 +1305,21 @@ function renderSummary(card, summary) {
     "bb-thread-hover-card__repository"
   );
   if (!summary.repository.isGitRepository) {
+    const localContext = summary.repository.path?.trim() || (summary.repository.name === "Repository unavailable" ? "Local" : summary.repository.name);
+    const local = element(
+      "span",
+      "bb-thread-hover-card__local bb-thread-hover-card__truncate",
+      compactLocalPath(localContext)
+    );
+    local.title = localContext;
+    repository.setAttribute("aria-label", `Local workspace: ${localContext}`);
     repository.append(
       icon(
         LaptopIcon,
         "LaptopIcon",
         "bb-thread-hover-card__icon bb-thread-hover-card__meta-icon"
       ),
-      element("span", "bb-thread-hover-card__local", "Local")
+      local
     );
   } else {
     repository.append(
@@ -1292,6 +1360,7 @@ function renderSummary(card, summary) {
         summary.pullRequest.signal
       );
       pullRequestStatus.dataset.tone = pullRequestTone(summary.pullRequest);
+      pullRequestStatus.dataset.state = summary.pullRequest.state;
       pullRequestLink.append(pullRequestStatus);
       pullRequestLine.append(pullRequestLink);
       repository.append(pullRequestLine);
@@ -1301,6 +1370,11 @@ function renderSummary(card, summary) {
   if (summary.repository.isGitRepository && summary.repository.branch) {
     const branch = element("section", "bb-thread-hover-card__branch-row");
     branch.append(
+      icon(
+        GitBranchIcon,
+        "GitBranchIcon",
+        "bb-thread-hover-card__icon bb-thread-hover-card__meta-icon"
+      ),
       element(
         "span",
         "bb-thread-hover-card__branch",

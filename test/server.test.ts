@@ -47,7 +47,11 @@ const fakeBb = {
   sdk: {
     environments: {
       async get() {
-        return { branchName: "feature/hover-cards", isGitRepo: true };
+        return {
+          branchName: "feature/hover-cards",
+          isGitRepo: true,
+          path: "/workspace/thread-hover-cards",
+        };
       },
       async pullRequest() {
         return {
@@ -183,6 +187,7 @@ assert.deepEqual(summary, {
     branch: "feature/hover-cards",
     isGitRepository: true,
     name: "acme/bb-plugin-thread-hover-cards",
+    path: "/workspace/thread-hover-cards",
   },
   status: "active",
   updatedAt: 123,

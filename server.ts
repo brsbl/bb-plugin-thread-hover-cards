@@ -46,6 +46,7 @@ export const threadSummarySchema = z
         branch: z.string().nullable(),
         isGitRepository: z.boolean(),
         name: z.string(),
+        path: z.string().nullable(),
       })
       .strict(),
     status: displayStatusSchema,
@@ -300,6 +301,7 @@ export default function plugin(bb: BbPluginApi): void {
             project?.gitRemoteUrl ?? null,
             project?.name ?? "Repository unavailable",
           ),
+          path: environment?.path ?? null,
         },
         status: thread.runtime.displayStatus,
         updatedAt: thread.updatedAt,

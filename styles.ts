@@ -169,8 +169,11 @@ export const HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__branch-row {
+  gap: 0.375rem;
   margin-top: 0.3125rem;
   overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
 }
 
 .bb-thread-hover-card__repository > .bb-thread-hover-card__truncate,
@@ -201,14 +204,10 @@ export const HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__branch {
   max-width: 100%;
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
-  padding: 0.0625rem 0.3rem;
-  border-radius: 0.25rem;
-  background: color-mix(in srgb, var(--foreground) 5%, transparent);
   color: var(--muted-foreground);
-  font-size: 0.6875rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -284,20 +283,18 @@ export const HOVER_CARD_CSS = String.raw`
   color: color-mix(in oklab, var(--success) 80%, var(--foreground));
 }
 
-.bb-thread-hover-card__pr-status[data-tone="warning"] {
-  border-color:
-    color-mix(in oklab, var(--warning-text, var(--warning)) 18%, transparent);
-  background:
-    color-mix(in oklab, var(--warning-text, var(--warning)) 8%, transparent);
-  color: var(--warning-text, var(--warning));
-}
-
 .bb-thread-hover-card__pr-status[data-tone="danger"] {
   border-color:
     color-mix(in oklab, var(--destructive-text, var(--destructive)) 18%, transparent);
   background:
     color-mix(in oklab, var(--destructive-text, var(--destructive)) 8%, transparent);
   color: var(--destructive-text, var(--destructive));
+}
+
+.bb-thread-hover-card__pr-status[data-tone="merged"] {
+  border-color: color-mix(in oklab, var(--pr-merged) 18%, transparent);
+  background: color-mix(in oklab, var(--pr-merged) 9%, transparent);
+  color: var(--pr-merged);
 }
 
 .bb-thread-hover-card__link-icon {
