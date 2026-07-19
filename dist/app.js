@@ -19,7 +19,7 @@ var {
 var CARD_ID = "bb-thread-hover-card";
 var THREAD_TRIGGER_SELECTOR = "a[data-sidebar-thread-id]";
 var THREAD_ROW_SELECTOR = ".group\\/thread-row";
-var OPEN_DELAY_MS = 400;
+var OPEN_DELAY_MS = 150;
 var CLOSE_DELAY_MS = 120;
 var CACHE_TTL_MS = 1e4;
 var STATUS_LABELS = {

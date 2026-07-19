@@ -5,7 +5,7 @@ import "./styles.css";
 const CARD_ID = "bb-thread-hover-card";
 const THREAD_TRIGGER_SELECTOR = "a[data-sidebar-thread-id]";
 const THREAD_ROW_SELECTOR = ".group\\/thread-row";
-const OPEN_DELAY_MS = 400;
+const OPEN_DELAY_MS = 150;
 const CLOSE_DELAY_MS = 120;
 const CACHE_TTL_MS = 10_000;
 
