@@ -14551,8 +14551,15 @@ var pullRequestSummarySchema = external_exports.discriminatedUnion("kind", [
   external_exports.object({ kind: external_exports.literal("unavailable") }).strict()
 ]);
 var threadSummarySchema = external_exports.object({
+  currentTurnStartedAt: external_exports.number().nullable(),
   latestUserMessage: external_exports.string().nullable(),
   pullRequest: pullRequestSummarySchema,
+  provider: external_exports.object({
+    displayName: external_exports.string(),
+    id: external_exports.string(),
+    logoUrl: external_exports.string().nullable(),
+    model: external_exports.string()
+  }).strict(),
   repository: external_exports.object({
     branch: external_exports.string().nullable(),
     isGitRepository: external_exports.boolean(),
@@ -14601,6 +14608,44 @@ function repositoryName(remoteUrl, fallback) {
   const segments = path.replace(/\/+$/, "").replace(/\.git$/, "").split(/[/:]/).filter(Boolean);
   return segments.slice(-2).join("/") || fallback;
 }
+function isRunningStatus(status) {
+  return status === "active" || status === "host-reconnecting" || status === "provisioning" || status === "starting" || status === "stopping";
+}
+async function currentTurnStartedAt(bb, threadId, status) {
+  if (!isRunningStatus(status)) return null;
+  const timeline = await safely(
+    bb.sdk.threads.timeline({
+      threadId,
+      segmentLimit: "1",
+      summaryOnly: "true"
+    })
+  );
+  if (!timeline) return null;
+  let sequenceWindow = 4096;
+  while (true) {
+    const afterSeq = Math.max(0, timeline.maxSeq - sequenceWindow);
+    const events = await safely(
+      bb.sdk.threads.events.list({
+        threadId,
+        afterSeq: String(afterSeq),
+        limit: String(sequenceWindow + 1)
+      })
+    );
+    if (!events) return null;
+    const latestStart = [...events].reverse().find(
+      (event) => event.type === "turn/started" && event.data.parentToolCallId === void 0
+    );
+    if (latestStart) {
+      const turnId = latestStart.scope.kind === "turn" ? latestStart.scope.turnId : null;
+      const completed = turnId !== null && events.some(
+        (event) => event.type === "turn/completed" && event.scope.kind === "turn" && event.scope.turnId === turnId && event.seq > latestStart.seq
+      );
+      return completed ? null : latestStart.createdAt;
+    }
+    if (afterSeq === 0) return null;
+    sequenceWindow *= 2;
+  }
+}
 var PULL_REQUEST_SIGNALS = {
   blocked: "Blocked",
   checks_failed: "Checks failing",
@@ -14617,7 +14662,15 @@ function plugin(bb) {
   bb.rpc.register(rpcContract, {
     async threadSummary({ threadId }) {
       const thread = await bb.sdk.threads.get({ threadId });
-      const [history, project, environment, pullRequestResult] = await Promise.all([
+      const [
+        history,
+        project,
+        environment,
+        pullRequestResult,
+        executionOptions,
+        providers,
+        turnStartedAt
+      ] = await Promise.all([
         safely(bb.sdk.threads.promptHistory({ threadId, limit: "1" })),
         safely(bb.sdk.projects.get({ projectId: thread.projectId })),
         thread.environmentId ? safely(
@@ -14629,9 +14682,23 @@ function plugin(bb) {
           bb.sdk.environments.pullRequest({
             environmentId: thread.environmentId
           })
-        ) : Promise.resolve(null)
+        ) : Promise.resolve(null),
+        safely(bb.sdk.threads.defaultExecutionOptions({ threadId })),
+        safely(
+          bb.sdk.providers.list(
+            thread.environmentId ? { environmentId: thread.environmentId } : void 0
+          )
+        ),
+        currentTurnStartedAt(
+          bb,
+          threadId,
+          thread.runtime.displayStatus
+        )
       ]);
       const isGitRepository = environment?.isGitRepo ?? project?.gitRemoteUrl != null;
+      const provider = providers?.find(
+        (candidate) => candidate.id === thread.providerId
+      );
       let pullRequest;
       if (!isGitRepository || pullRequestResult?.outcome === "absent") {
         pullRequest = { kind: "absent" };
@@ -14650,8 +14717,15 @@ function plugin(bb) {
         pullRequest = { kind: "unavailable" };
       }
       return {
+        currentTurnStartedAt: turnStartedAt,
         latestUserMessage: history ? latestVisibleMessage(history) : null,
         pullRequest,
+        provider: {
+          displayName: provider?.displayName ?? thread.providerId,
+          id: thread.providerId,
+          logoUrl: provider?.logoUrl ?? null,
+          model: executionOptions?.model ?? "Model unavailable"
+        },
         repository: {
           branch: environment?.branchName ?? null,
           isGitRepository,

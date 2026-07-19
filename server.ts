@@ -29,8 +29,17 @@ const pullRequestSummarySchema = z.discriminatedUnion("kind", [
 
 export const threadSummarySchema = z
   .object({
+    currentTurnStartedAt: z.number().nullable(),
     latestUserMessage: z.string().nullable(),
     pullRequest: pullRequestSummarySchema,
+    provider: z
+      .object({
+        displayName: z.string(),
+        id: z.string(),
+        logoUrl: z.string().nullable(),
+        model: z.string(),
+      })
+      .strict(),
     repository: z
       .object({
         branch: z.string().nullable(),
@@ -105,6 +114,71 @@ function repositoryName(remoteUrl: string | null, fallback: string): string {
   return segments.slice(-2).join("/") || fallback;
 }
 
+function isRunningStatus(status: ThreadSummary["status"]): boolean {
+  return (
+    status === "active" ||
+    status === "host-reconnecting" ||
+    status === "provisioning" ||
+    status === "starting" ||
+    status === "stopping"
+  );
+}
+
+async function currentTurnStartedAt(
+  bb: BbPluginApi,
+  threadId: string,
+  status: ThreadSummary["status"],
+): Promise<number | null> {
+  if (!isRunningStatus(status)) return null;
+
+  const timeline = await safely(
+    bb.sdk.threads.timeline({
+      threadId,
+      segmentLimit: "1",
+      summaryOnly: "true",
+    }),
+  );
+  if (!timeline) return null;
+
+  let sequenceWindow = 4_096;
+  while (true) {
+    const afterSeq = Math.max(0, timeline.maxSeq - sequenceWindow);
+    const events = await safely(
+      bb.sdk.threads.events.list({
+        threadId,
+        afterSeq: String(afterSeq),
+        limit: String(sequenceWindow + 1),
+      }),
+    );
+    if (!events) return null;
+
+    const latestStart = [...events]
+      .reverse()
+      .find(
+        (event) =>
+          event.type === "turn/started" &&
+          event.data.parentToolCallId === undefined,
+      );
+    if (latestStart) {
+      const turnId =
+        latestStart.scope.kind === "turn" ? latestStart.scope.turnId : null;
+      const completed =
+        turnId !== null &&
+        events.some(
+          (event) =>
+            event.type === "turn/completed" &&
+            event.scope.kind === "turn" &&
+            event.scope.turnId === turnId &&
+            event.seq > latestStart.seq,
+        );
+      return completed ? null : latestStart.createdAt;
+    }
+
+    if (afterSeq === 0) return null;
+    sequenceWindow *= 2;
+  }
+}
+
 const PULL_REQUEST_SIGNALS = {
   blocked: "Blocked",
   checks_failed: "Checks failing",
@@ -122,7 +196,15 @@ export default function plugin(bb: BbPluginApi): void {
   bb.rpc.register(rpcContract, {
     async threadSummary({ threadId }) {
       const thread = await bb.sdk.threads.get({ threadId });
-      const [history, project, environment, pullRequestResult] =
+      const [
+        history,
+        project,
+        environment,
+        pullRequestResult,
+        executionOptions,
+        providers,
+        turnStartedAt,
+      ] =
         await Promise.all([
           safely(bb.sdk.threads.promptHistory({ threadId, limit: "1" })),
           safely(bb.sdk.projects.get({ projectId: thread.projectId })),
@@ -140,10 +222,26 @@ export default function plugin(bb: BbPluginApi): void {
                 }),
               )
             : Promise.resolve(null),
+          safely(bb.sdk.threads.defaultExecutionOptions({ threadId })),
+          safely(
+            bb.sdk.providers.list(
+              thread.environmentId
+                ? { environmentId: thread.environmentId }
+                : undefined,
+            ),
+          ),
+          currentTurnStartedAt(
+            bb,
+            threadId,
+            thread.runtime.displayStatus,
+          ),
         ]);
 
       const isGitRepository =
         environment?.isGitRepo ?? project?.gitRemoteUrl != null;
+      const provider = providers?.find(
+        (candidate) => candidate.id === thread.providerId,
+      );
 
       let pullRequest: ThreadSummary["pullRequest"];
       if (!isGitRepository || pullRequestResult?.outcome === "absent") {
@@ -171,8 +269,15 @@ export default function plugin(bb: BbPluginApi): void {
       }
 
       return {
+        currentTurnStartedAt: turnStartedAt,
         latestUserMessage: history ? latestVisibleMessage(history) : null,
         pullRequest,
+        provider: {
+          displayName: provider?.displayName ?? thread.providerId,
+          id: thread.providerId,
+          logoUrl: provider?.logoUrl ?? null,
+          model: executionOptions?.model ?? "Model unavailable",
+        },
         repository: {
           branch: environment?.branchName ?? null,
           isGitRepository,

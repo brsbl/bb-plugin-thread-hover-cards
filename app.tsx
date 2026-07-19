@@ -1,10 +1,15 @@
 import { definePluginApp } from "@bb/plugin-sdk/app";
 import {
-  ArrowLeft03Icon,
   CancelCircleIcon,
+  ClaudeIcon,
+  CursorIcon,
   Folder01Icon,
+  LaptopIcon,
   LinkSquare01Icon,
   Loading03Icon,
+  OpenAiIcon,
+  PiIcon,
+  SourceCodeIcon,
 } from "./icons";
 import type { ThreadSummary } from "./server";
 import { HOVER_CARD_CSS } from "./styles";
@@ -186,6 +191,85 @@ function relativeTime(timestamp: number): string {
   }).format(timestamp);
 }
 
+function runTime(timestamp: number): string {
+  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+  const seconds = elapsedSeconds % 60;
+  const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+  if (elapsedMinutes < 1) return `${seconds}s`;
+
+  const minutes = elapsedMinutes % 60;
+  const hours = Math.floor(elapsedMinutes / 60);
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m ${seconds}s`;
+}
+
+function refreshTimes(card: HTMLElement): void {
+  const runtime = card.querySelector<HTMLElement>("[data-turn-started-at]");
+  if (runtime) {
+    const timestamp = Number(runtime.dataset.turnStartedAt);
+    runtime.textContent = `Run time ${runTime(timestamp)}`;
+  }
+
+  const updated = card.querySelector<HTMLElement>("[data-updated-at]");
+  if (updated) {
+    const timestamp = Number(updated.dataset.updatedAt);
+    updated.textContent = `Updated ${relativeTime(timestamp)}`;
+  }
+}
+
+function providerIcon(
+  provider: ThreadSummary["provider"],
+): HTMLImageElement | SVGSVGElement {
+  if (provider.logoUrl) {
+    const image = element(
+      "img",
+      "bb-thread-hover-card__icon bb-thread-hover-card__provider-icon",
+    );
+    image.src = provider.logoUrl;
+    image.alt = "";
+    image.setAttribute("aria-hidden", "true");
+    image.addEventListener(
+      "error",
+      () => {
+        image.replaceWith(
+          icon(
+            SourceCodeIcon,
+            "SourceCodeIcon",
+            "bb-thread-hover-card__icon bb-thread-hover-card__provider-icon",
+          ),
+        );
+      },
+      { once: true },
+    );
+    return image;
+  }
+
+  const providerDefinition =
+    provider.id === "codex"
+      ? { definition: OpenAiIcon, name: "OpenAiIcon", viewBox: "0 0 24 24" }
+      : provider.id === "claude-code"
+        ? { definition: ClaudeIcon, name: "ClaudeIcon", viewBox: "0 0 149 149" }
+        : provider.id === "pi"
+          ? { definition: PiIcon, name: "PiIcon", viewBox: "100 100 600 600" }
+          : provider.id === "acp-cursor"
+            ? {
+                definition: CursorIcon,
+                name: "CursorIcon",
+                viewBox: "0 0 24 24",
+              }
+            : {
+                definition: SourceCodeIcon,
+                name: "SourceCodeIcon",
+                viewBox: "0 0 24 24",
+              };
+  const providerMark = icon(
+    providerDefinition.definition,
+    providerDefinition.name,
+    "bb-thread-hover-card__icon bb-thread-hover-card__provider-icon",
+  );
+  providerMark.setAttribute("viewBox", providerDefinition.viewBox);
+  return providerMark;
+}
+
 async function fetchSummary(threadId: string): Promise<ThreadSummary> {
   const response = await fetch(
     "/api/v1/plugins/thread-hover-cards/rpc/threadSummary",
@@ -225,40 +309,34 @@ function renderError(card: HTMLElement): void {
 
 function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
   const header = element("div", "bb-thread-hover-card__header");
-  const status = element("div", "bb-thread-hover-card__status");
-  const statusDetails = statusPresentation(summary.status);
-  if (statusDetails.icon && statusDetails.iconName) {
-    const statusIcon = icon(
-      statusDetails.icon,
-      statusDetails.iconName,
-      "bb-thread-hover-card__icon bb-thread-hover-card__status-icon",
-    );
-    statusIcon.dataset.tone = statusDetails.tone;
-    if (statusDetails.animated) statusIcon.dataset.animated = "true";
-    status.append(statusIcon);
+  if (summary.currentTurnStartedAt !== null) {
+    const runtime = element("span", "bb-thread-hover-card__runtime");
+    runtime.dataset.turnStartedAt = String(summary.currentTurnStartedAt);
+    header.append(runtime);
   }
-  status.append(
-    element("span", "bb-thread-hover-card__status-label", statusDetails.label),
-  );
-  header.append(
-    status,
-    element(
-      "span",
-      "bb-thread-hover-card__updated",
-      `Updated ${relativeTime(summary.updatedAt)}`,
-    ),
-  );
+  const updated = element("span", "bb-thread-hover-card__updated");
+  updated.dataset.updatedAt = String(summary.updatedAt);
+  header.append(updated);
 
   const content: HTMLElement[] = [header];
 
   if (summary.latestUserMessage) {
     const request = element("section", "bb-thread-hover-card__summary");
+    const statusDetails = statusPresentation(summary.status);
+    if (statusDetails.icon && statusDetails.iconName) {
+      const statusIcon = icon(
+        statusDetails.icon,
+        statusDetails.iconName,
+        "bb-thread-hover-card__icon bb-thread-hover-card__status-icon",
+      );
+      statusIcon.dataset.tone = statusDetails.tone;
+      if (statusDetails.animated) statusIcon.dataset.animated = "true";
+      statusIcon.removeAttribute("aria-hidden");
+      statusIcon.setAttribute("aria-label", statusDetails.label);
+      statusIcon.setAttribute("role", "img");
+      request.append(statusIcon);
+    }
     request.append(
-      icon(
-        ArrowLeft03Icon,
-        "ArrowLeft03Icon",
-        "bb-thread-hover-card__icon bb-thread-hover-card__summary-icon",
-      ),
       element(
         "p",
         "bb-thread-hover-card__message",
@@ -268,24 +346,37 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
     content.push(request);
   }
 
+  const provider = element("section", "bb-thread-hover-card__provider");
+  provider.setAttribute(
+    "aria-label",
+    `${summary.provider.displayName}, ${summary.provider.model}`,
+  );
+  provider.title = `${summary.provider.displayName} · ${summary.provider.model}`;
+  provider.append(
+    providerIcon(summary.provider),
+    element(
+      "span",
+      "bb-thread-hover-card__provider-model bb-thread-hover-card__truncate",
+      summary.provider.model,
+    ),
+  );
+  content.push(provider);
+
   const repository = element(
     "section",
     "bb-thread-hover-card__repository",
   );
   if (!summary.repository.isGitRepository) {
-    const noRepository = element("p", "bb-thread-hover-card__meta");
-    noRepository.append(
+    repository.append(
       icon(
-        Folder01Icon,
-        "Folder01Icon",
+        LaptopIcon,
+        "LaptopIcon",
         "bb-thread-hover-card__icon bb-thread-hover-card__meta-icon",
       ),
-      element("span", "", "No Git repository"),
+      element("span", "bb-thread-hover-card__local", "Local"),
     );
-    repository.append(noRepository);
   } else {
-    const repoLine = element("p", "bb-thread-hover-card__meta");
-    repoLine.append(
+    repository.append(
       icon(
         Folder01Icon,
         "Folder01Icon",
@@ -294,7 +385,7 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
       element("span", "bb-thread-hover-card__truncate", summary.repository.name),
     );
     if (summary.repository.branch) {
-      repoLine.append(
+      repository.append(
         element(
           "span",
           "bb-thread-hover-card__branch",
@@ -302,10 +393,8 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
         ),
       );
     }
-    repository.append(repoLine);
 
-    const pullRequestLine = element("p", "bb-thread-hover-card__meta");
-    pullRequestLine.classList.add("bb-thread-hover-card__pr");
+    const pullRequestLine = element("span", "bb-thread-hover-card__pr");
     pullRequestLine.dataset.kind = summary.pullRequest.kind;
     if (summary.pullRequest.kind === "available") {
       const pullRequestLink = element(
@@ -352,8 +441,8 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
           "span",
           "",
           summary.pullRequest.kind === "absent"
-            ? "No pull request"
-            : "Pull request unavailable",
+            ? "No PR"
+            : "PR unavailable",
         ),
       );
     }
@@ -362,6 +451,7 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
   content.push(repository);
 
   card.replaceChildren(...content);
+  refreshTimes(card);
 }
 
 function installHoverCards(): HoverCardController {
@@ -369,6 +459,7 @@ function installHoverCards(): HoverCardController {
   let activeTrigger: HTMLAnchorElement | null = null;
   let openTimer: ReturnType<typeof setTimeout> | null = null;
   let closeTimer: ReturnType<typeof setTimeout> | null = null;
+  let timeTimer: ReturnType<typeof setInterval> | null = null;
   let disposed = false;
   let requestGeneration = 0;
   const cache = new Map<string, CachedSummary>();
@@ -433,6 +524,10 @@ function installHoverCards(): HoverCardController {
     hoverCard.classList.remove("is-visible");
     void hoverCard.offsetWidth;
     hoverCard.classList.add("is-visible");
+    if (timeTimer) clearInterval(timeTimer);
+    timeTimer = setInterval(() => {
+      if (card && !card.hidden) refreshTimes(card);
+    }, 1_000);
 
     const cached = cache.get(threadId);
     if (cached) renderSummary(hoverCard, cached.summary);
@@ -501,6 +596,10 @@ function installHoverCards(): HoverCardController {
     requestGeneration += 1;
     activeTrigger?.removeAttribute("aria-describedby");
     activeTrigger = null;
+    if (timeTimer) {
+      clearInterval(timeTimer);
+      timeTimer = null;
+    }
     if (card) {
       card.hidden = true;
       card.classList.remove("is-visible");

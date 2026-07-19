@@ -49,11 +49,41 @@ const fakeBb = {
         };
       },
     },
+    providers: {
+      async list() {
+        return [
+          {
+            displayName: "Codex",
+            id: "codex",
+            logoUrl: null,
+          },
+        ];
+      },
+    },
     threads: {
+      async defaultExecutionOptions() {
+        return { model: "gpt-5.6-sol" };
+      },
+      events: {
+        async list() {
+          return [
+            {
+              createdAt: 100,
+              data: { providerThreadId: "provider_1" },
+              id: "event_1",
+              scope: { kind: "turn", turnId: "turn_1" },
+              seq: 10,
+              threadId: "thr_1",
+              type: "turn/started",
+            },
+          ];
+        },
+      },
       async get() {
         return {
           environmentId: "env_1",
           projectId: "proj_1",
+          providerId: "codex",
           runtime: { displayStatus: "active" },
           updatedAt: 123,
         };
@@ -77,6 +107,9 @@ const fakeBb = {
           },
         ];
       },
+      async timeline() {
+        return { maxSeq: 20 };
+      },
     },
   },
 };
@@ -86,6 +119,7 @@ assert.ok(summaryHandler, "registers the threadSummary RPC handler");
 
 const summary = await summaryHandler({ threadId: "thr_1" });
 assert.deepEqual(summary, {
+  currentTurnStartedAt: 100,
   latestUserMessage: "Fix the hover card today",
   pullRequest: {
     kind: "available",
@@ -94,6 +128,12 @@ assert.deepEqual(summary, {
     state: "open",
     title: "Add thread hover cards",
     url: "https://github.com/acme/bb-plugin-thread-hover-cards/pull/42",
+  },
+  provider: {
+    displayName: "Codex",
+    id: "codex",
+    logoUrl: null,
+    model: "gpt-5.6-sol",
   },
   repository: {
     branch: "feature/hover-cards",

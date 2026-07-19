@@ -8,7 +8,7 @@ export const HOVER_CARD_CSS = String.raw`
   padding: 0.75rem;
   border: 1px solid transparent;
   border-color:
-    color-mix(in srgb, var(--foreground) 8%, transparent);
+    color-mix(in srgb, var(--foreground) 5%, transparent);
   border-radius: var(--radius-lg, 0.5rem);
   background: var(--popover);
   background: color-mix(in srgb, var(--popover) 82%, transparent);
@@ -32,7 +32,9 @@ export const HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__header,
-.bb-thread-hover-card__status,
+.bb-thread-hover-card__provider,
+.bb-thread-hover-card__repository,
+.bb-thread-hover-card__pr,
 .bb-thread-hover-card__meta {
   display: flex;
   min-width: 0;
@@ -42,11 +44,9 @@ export const HOVER_CARD_CSS = String.raw`
 .bb-thread-hover-card__header {
   justify-content: space-between;
   gap: 0.75rem;
-  font-weight: 500;
-}
-
-.bb-thread-hover-card__status {
-  gap: 0.375rem;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 400;
 }
 
 .bb-thread-hover-card__icon {
@@ -68,6 +68,7 @@ export const HOVER_CARD_CSS = String.raw`
   color: var(--warning-text, var(--warning));
 }
 
+.bb-thread-hover-card__runtime,
 .bb-thread-hover-card__updated,
 .bb-thread-hover-card__loading,
 .bb-thread-hover-card__meta-label,
@@ -75,16 +76,23 @@ export const HOVER_CARD_CSS = String.raw`
   color: var(--muted-foreground);
 }
 
+.bb-thread-hover-card__runtime,
 .bb-thread-hover-card__updated {
   flex: none;
   font-variant-numeric: tabular-nums;
 }
 
-.bb-thread-hover-card__repository {
+.bb-thread-hover-card__updated {
+  margin-left: auto;
+}
+
+.bb-thread-hover-card__provider {
+  gap: 0.375rem;
   margin-top: 0.625rem;
-  padding-top: 0.625rem;
+  padding-top: 0.5625rem;
   border-top: 1px solid
-    color-mix(in srgb, var(--foreground) 6%, transparent);
+    color-mix(in srgb, var(--foreground) 4%, transparent);
+  color: var(--muted-foreground);
 }
 
 .bb-thread-hover-card__summary,
@@ -102,9 +110,8 @@ export const HOVER_CARD_CSS = String.raw`
   margin-top: 0.625rem;
 }
 
-.bb-thread-hover-card__summary-icon {
+.bb-thread-hover-card__status-icon {
   margin-top: 0.125rem;
-  color: color-mix(in srgb, var(--muted-foreground) 78%, transparent);
 }
 
 .bb-thread-hover-card__message {
@@ -119,9 +126,23 @@ export const HOVER_CARD_CSS = String.raw`
   -webkit-line-clamp: 3;
 }
 
+.bb-thread-hover-card__provider-icon {
+  width: 0.8125rem;
+  height: 0.8125rem;
+  color: color-mix(in srgb, var(--muted-foreground) 82%, transparent);
+  object-fit: contain;
+}
+
+.bb-thread-hover-card__provider-model {
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+
 .bb-thread-hover-card__repository {
-  display: grid;
   gap: 0.375rem;
+  margin-top: 0.375rem;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .bb-thread-hover-card__meta {
@@ -137,6 +158,7 @@ export const HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__truncate {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   color: var(--foreground);
@@ -145,7 +167,9 @@ export const HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__branch {
-  min-width: 0;
+  max-width: 6.5rem;
+  flex: 0 1 auto;
+  min-width: 2.5rem;
   overflow: hidden;
   padding: 0.0625rem 0.3rem;
   border-radius: 0.25rem;
@@ -157,6 +181,12 @@ export const HOVER_CARD_CSS = String.raw`
   white-space: nowrap;
 }
 
+.bb-thread-hover-card__pr {
+  flex: none;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
 .bb-thread-hover-card__pr-link {
   display: flex;
   min-width: 0;
@@ -166,6 +196,10 @@ export const HOVER_CARD_CSS = String.raw`
   color: var(--foreground);
   outline: none;
   text-decoration: none;
+}
+
+.bb-thread-hover-card__local {
+  color: var(--foreground);
 }
 
 .bb-thread-hover-card__pr-link:hover {

@@ -16,13 +16,14 @@ var {
 } = mod;
 
 // icons.ts
-var ArrowLeft03Icon = [
+var LaptopIcon = [
   [
     "path",
     {
-      d: "M4 6L4 18",
+      d: "M20.4999 16.5V8.5C20.4999 6.14298 20.4999 4.96447 19.7676 4.23223C19.0354 3.5 17.8569 3.5 15.4999 3.5H8.49988C6.14286 3.5 4.96434 3.5 4.23211 4.23223C3.49988 4.96447 3.49988 6.14298 3.49988 8.5V16.5",
       stroke: "currentColor",
       strokeLinecap: "round",
+      strokeLinejoin: "round",
       strokeWidth: "1.5",
       key: "0"
     }
@@ -30,23 +31,12 @@ var ArrowLeft03Icon = [
   [
     "path",
     {
-      d: "M8.00012 12.0005L20.0001 12.0005",
+      d: "M21.9841 20.5H2.01567C1.63273 20.5 1.38367 20.1088 1.55493 19.7764L3.49988 16.5H20.4999L22.4448 19.7764C22.6161 20.1088 22.367 20.5 21.9841 20.5Z",
       stroke: "currentColor",
       strokeLinecap: "round",
       strokeLinejoin: "round",
       strokeWidth: "1.5",
       key: "1"
-    }
-  ],
-  [
-    "path",
-    {
-      d: "M12 8C12 8 8.00001 10.946 8 12C7.99999 13.0541 12 16 12 16",
-      stroke: "currentColor",
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      strokeWidth: "1.5",
-      key: "2"
     }
   ]
 ];
@@ -192,6 +182,90 @@ var CancelCircleIcon = [
     }
   ]
 ];
+var SourceCodeIcon = [
+  [
+    "path",
+    {
+      d: "M17 8L18.8398 9.85008C19.6133 10.6279 20 11.0168 20 11.5C20 11.9832 19.6133 12.3721 18.8398 13.1499L17 15",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "0"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M7 8L5.16019 9.85008C4.38673 10.6279 4 11.0168 4 11.5C4 11.9832 4.38673 12.3721 5.16019 13.1499L7 15",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "1"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M14.5 4L9.5 20",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "2"
+    }
+  ]
+];
+var OpenAiIcon = [
+  [
+    "path",
+    {
+      d: "M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.8956zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z",
+      fill: "currentColor",
+      key: "0"
+    }
+  ]
+];
+var ClaudeIcon = [
+  [
+    "path",
+    {
+      d: "M29.05 98.54L58.19 82.19L58.68 80.77L58.19 79.98H56.77L51.9 79.68L35.25 79.23L20.81 78.63L6.82 77.88L3.3 77.13L0 72.78L0.340004 70.61L3.3 68.62L7.54 68.99L16.91 69.63L30.97 70.6L41.17 71.2L56.28 72.77H58.68L59.02 71.8L58.2 71.2L57.56 70.6L43.01 60.74L27.26 50.32L19.01 44.32L14.55 41.28L12.3 38.43L11.33 32.21L15.38 27.75L20.82 28.12L22.21 28.49L27.72 32.73L39.49 41.84L54.86 53.16L57.11 55.03L58.01 54.39L58.12 53.94L57.11 52.25L48.75 37.14L39.83 21.77L35.86 15.4L34.81 11.58C34.44 10.01 34.17 8.69 34.17 7.08L38.78 0.820007L41.33 0L47.48 0.820007L50.07 3.07001L53.89 11.81L60.08 25.57L69.68 44.28L72.49 49.83L73.99 54.97L74.55 56.54H75.52V55.64L76.31 45.1L77.77 32.16L79.19 15.51L79.68 10.82L82 5.2L86.61 2.16L90.21 3.88L93.17 8.12L92.76 10.86L91 22.3L87.55 40.22L85.3 52.22H86.61L88.11 50.72L94.18 42.66L104.38 29.91L108.88 24.85L114.13 19.26L117.5 16.6H123.87L128.56 23.57L126.46 30.77L119.9 39.09L114.46 46.14L106.66 56.64L101.79 65.04L102.24 65.71L103.4 65.6L121.02 61.85L130.54 60.13L141.9 58.18L147.04 60.58L147.6 63.02L145.58 68.01L133.43 71.01L119.18 73.86L97.96 78.88L97.7 79.07L98 79.44L107.56 80.34L111.65 80.56H121.66L140.3 81.95L145.17 85.17L148.09 89.11L147.6 92.11L140.1 95.93L129.98 93.53L106.36 87.91L98.26 85.89H97.14V86.56L103.89 93.16L116.26 104.33L131.75 118.73L132.54 122.29L130.55 125.1L128.45 124.8L114.84 114.56L109.59 109.95L97.7 99.94H96.91V100.99L99.65 105L114.12 126.75L114.87 133.42L113.82 135.59L110.07 136.9L105.95 136.15L97.48 124.26L88.74 110.87L81.69 98.87L80.83 99.36L76.67 144.17L74.72 146.46L70.22 148.18L66.47 145.33L64.48 140.72L66.47 131.61L68.87 119.72L70.82 110.27L72.58 98.53L73.63 94.63L73.56 94.37L72.7 94.48L63.85 106.63L50.39 124.82L39.74 136.22L37.19 137.23L32.77 134.94L33.18 130.85L35.65 127.21L50.39 108.46L59.28 96.84L65.02 90.13L64.98 89.16H64.64L25.49 114.58L18.52 115.48L15.52 112.67L15.89 108.06L17.31 106.56L29.08 98.46L29.04 98.5L29.05 98.54Z",
+      fill: "currentColor",
+      key: "0"
+    }
+  ]
+];
+var PiIcon = [
+  [
+    "path",
+    {
+      d: "M165.29 165.29H517.36V400H400V517.36H282.65V634.72H165.29ZM282.65 282.65V400H400V282.65Z",
+      fill: "currentColor",
+      fillRule: "evenodd",
+      key: "0"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M517.36 400H634.72V634.72H517.36Z",
+      fill: "currentColor",
+      key: "1"
+    }
+  ]
+];
+var CursorIcon = [
+  [
+    "path",
+    {
+      d: "M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23",
+      fill: "currentColor",
+      key: "0"
+    }
+  ]
+];
 
 // styles.ts
 var HOVER_CARD_CSS = String.raw`
@@ -204,7 +278,7 @@ var HOVER_CARD_CSS = String.raw`
   padding: 0.75rem;
   border: 1px solid transparent;
   border-color:
-    color-mix(in srgb, var(--foreground) 8%, transparent);
+    color-mix(in srgb, var(--foreground) 5%, transparent);
   border-radius: var(--radius-lg, 0.5rem);
   background: var(--popover);
   background: color-mix(in srgb, var(--popover) 82%, transparent);
@@ -228,7 +302,9 @@ var HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__header,
-.bb-thread-hover-card__status,
+.bb-thread-hover-card__provider,
+.bb-thread-hover-card__repository,
+.bb-thread-hover-card__pr,
 .bb-thread-hover-card__meta {
   display: flex;
   min-width: 0;
@@ -238,11 +314,9 @@ var HOVER_CARD_CSS = String.raw`
 .bb-thread-hover-card__header {
   justify-content: space-between;
   gap: 0.75rem;
-  font-weight: 500;
-}
-
-.bb-thread-hover-card__status {
-  gap: 0.375rem;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 400;
 }
 
 .bb-thread-hover-card__icon {
@@ -264,6 +338,7 @@ var HOVER_CARD_CSS = String.raw`
   color: var(--warning-text, var(--warning));
 }
 
+.bb-thread-hover-card__runtime,
 .bb-thread-hover-card__updated,
 .bb-thread-hover-card__loading,
 .bb-thread-hover-card__meta-label,
@@ -271,16 +346,23 @@ var HOVER_CARD_CSS = String.raw`
   color: var(--muted-foreground);
 }
 
+.bb-thread-hover-card__runtime,
 .bb-thread-hover-card__updated {
   flex: none;
   font-variant-numeric: tabular-nums;
 }
 
-.bb-thread-hover-card__repository {
+.bb-thread-hover-card__updated {
+  margin-left: auto;
+}
+
+.bb-thread-hover-card__provider {
+  gap: 0.375rem;
   margin-top: 0.625rem;
-  padding-top: 0.625rem;
+  padding-top: 0.5625rem;
   border-top: 1px solid
-    color-mix(in srgb, var(--foreground) 6%, transparent);
+    color-mix(in srgb, var(--foreground) 4%, transparent);
+  color: var(--muted-foreground);
 }
 
 .bb-thread-hover-card__summary,
@@ -298,9 +380,8 @@ var HOVER_CARD_CSS = String.raw`
   margin-top: 0.625rem;
 }
 
-.bb-thread-hover-card__summary-icon {
+.bb-thread-hover-card__status-icon {
   margin-top: 0.125rem;
-  color: color-mix(in srgb, var(--muted-foreground) 78%, transparent);
 }
 
 .bb-thread-hover-card__message {
@@ -315,9 +396,23 @@ var HOVER_CARD_CSS = String.raw`
   -webkit-line-clamp: 3;
 }
 
+.bb-thread-hover-card__provider-icon {
+  width: 0.8125rem;
+  height: 0.8125rem;
+  color: color-mix(in srgb, var(--muted-foreground) 82%, transparent);
+  object-fit: contain;
+}
+
+.bb-thread-hover-card__provider-model {
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+
 .bb-thread-hover-card__repository {
-  display: grid;
   gap: 0.375rem;
+  margin-top: 0.375rem;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .bb-thread-hover-card__meta {
@@ -333,6 +428,7 @@ var HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__truncate {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   color: var(--foreground);
@@ -341,7 +437,9 @@ var HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__branch {
-  min-width: 0;
+  max-width: 6.5rem;
+  flex: 0 1 auto;
+  min-width: 2.5rem;
   overflow: hidden;
   padding: 0.0625rem 0.3rem;
   border-radius: 0.25rem;
@@ -353,6 +451,12 @@ var HOVER_CARD_CSS = String.raw`
   white-space: nowrap;
 }
 
+.bb-thread-hover-card__pr {
+  flex: none;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
 .bb-thread-hover-card__pr-link {
   display: flex;
   min-width: 0;
@@ -362,6 +466,10 @@ var HOVER_CARD_CSS = String.raw`
   color: var(--foreground);
   outline: none;
   text-decoration: none;
+}
+
+.bb-thread-hover-card__local {
+  color: var(--foreground);
 }
 
 .bb-thread-hover-card__pr-link:hover {
@@ -574,6 +682,68 @@ function relativeTime(timestamp) {
     day: "numeric"
   }).format(timestamp);
 }
+function runTime(timestamp) {
+  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1e3));
+  const seconds = elapsedSeconds % 60;
+  const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+  if (elapsedMinutes < 1) return `${seconds}s`;
+  const minutes = elapsedMinutes % 60;
+  const hours = Math.floor(elapsedMinutes / 60);
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m ${seconds}s`;
+}
+function refreshTimes(card) {
+  const runtime2 = card.querySelector("[data-turn-started-at]");
+  if (runtime2) {
+    const timestamp = Number(runtime2.dataset.turnStartedAt);
+    runtime2.textContent = `Run time ${runTime(timestamp)}`;
+  }
+  const updated = card.querySelector("[data-updated-at]");
+  if (updated) {
+    const timestamp = Number(updated.dataset.updatedAt);
+    updated.textContent = `Updated ${relativeTime(timestamp)}`;
+  }
+}
+function providerIcon(provider) {
+  if (provider.logoUrl) {
+    const image = element(
+      "img",
+      "bb-thread-hover-card__icon bb-thread-hover-card__provider-icon"
+    );
+    image.src = provider.logoUrl;
+    image.alt = "";
+    image.setAttribute("aria-hidden", "true");
+    image.addEventListener(
+      "error",
+      () => {
+        image.replaceWith(
+          icon(
+            SourceCodeIcon,
+            "SourceCodeIcon",
+            "bb-thread-hover-card__icon bb-thread-hover-card__provider-icon"
+          )
+        );
+      },
+      { once: true }
+    );
+    return image;
+  }
+  const providerDefinition = provider.id === "codex" ? { definition: OpenAiIcon, name: "OpenAiIcon", viewBox: "0 0 24 24" } : provider.id === "claude-code" ? { definition: ClaudeIcon, name: "ClaudeIcon", viewBox: "0 0 149 149" } : provider.id === "pi" ? { definition: PiIcon, name: "PiIcon", viewBox: "100 100 600 600" } : provider.id === "acp-cursor" ? {
+    definition: CursorIcon,
+    name: "CursorIcon",
+    viewBox: "0 0 24 24"
+  } : {
+    definition: SourceCodeIcon,
+    name: "SourceCodeIcon",
+    viewBox: "0 0 24 24"
+  };
+  const providerMark = icon(
+    providerDefinition.definition,
+    providerDefinition.name,
+    "bb-thread-hover-card__icon bb-thread-hover-card__provider-icon"
+  );
+  providerMark.setAttribute("viewBox", providerDefinition.viewBox);
+  return providerMark;
+}
 async function fetchSummary(threadId) {
   const response = await fetch(
     "/api/v1/plugins/thread-hover-cards/rpc/threadSummary",
@@ -607,38 +777,32 @@ function renderError(card) {
 }
 function renderSummary(card, summary) {
   const header = element("div", "bb-thread-hover-card__header");
-  const status = element("div", "bb-thread-hover-card__status");
-  const statusDetails = statusPresentation(summary.status);
-  if (statusDetails.icon && statusDetails.iconName) {
-    const statusIcon = icon(
-      statusDetails.icon,
-      statusDetails.iconName,
-      "bb-thread-hover-card__icon bb-thread-hover-card__status-icon"
-    );
-    statusIcon.dataset.tone = statusDetails.tone;
-    if (statusDetails.animated) statusIcon.dataset.animated = "true";
-    status.append(statusIcon);
+  if (summary.currentTurnStartedAt !== null) {
+    const runtime2 = element("span", "bb-thread-hover-card__runtime");
+    runtime2.dataset.turnStartedAt = String(summary.currentTurnStartedAt);
+    header.append(runtime2);
   }
-  status.append(
-    element("span", "bb-thread-hover-card__status-label", statusDetails.label)
-  );
-  header.append(
-    status,
-    element(
-      "span",
-      "bb-thread-hover-card__updated",
-      `Updated ${relativeTime(summary.updatedAt)}`
-    )
-  );
+  const updated = element("span", "bb-thread-hover-card__updated");
+  updated.dataset.updatedAt = String(summary.updatedAt);
+  header.append(updated);
   const content = [header];
   if (summary.latestUserMessage) {
     const request = element("section", "bb-thread-hover-card__summary");
+    const statusDetails = statusPresentation(summary.status);
+    if (statusDetails.icon && statusDetails.iconName) {
+      const statusIcon = icon(
+        statusDetails.icon,
+        statusDetails.iconName,
+        "bb-thread-hover-card__icon bb-thread-hover-card__status-icon"
+      );
+      statusIcon.dataset.tone = statusDetails.tone;
+      if (statusDetails.animated) statusIcon.dataset.animated = "true";
+      statusIcon.removeAttribute("aria-hidden");
+      statusIcon.setAttribute("aria-label", statusDetails.label);
+      statusIcon.setAttribute("role", "img");
+      request.append(statusIcon);
+    }
     request.append(
-      icon(
-        ArrowLeft03Icon,
-        "ArrowLeft03Icon",
-        "bb-thread-hover-card__icon bb-thread-hover-card__summary-icon"
-      ),
       element(
         "p",
         "bb-thread-hover-card__message",
@@ -647,24 +811,36 @@ function renderSummary(card, summary) {
     );
     content.push(request);
   }
+  const provider = element("section", "bb-thread-hover-card__provider");
+  provider.setAttribute(
+    "aria-label",
+    `${summary.provider.displayName}, ${summary.provider.model}`
+  );
+  provider.title = `${summary.provider.displayName} \xB7 ${summary.provider.model}`;
+  provider.append(
+    providerIcon(summary.provider),
+    element(
+      "span",
+      "bb-thread-hover-card__provider-model bb-thread-hover-card__truncate",
+      summary.provider.model
+    )
+  );
+  content.push(provider);
   const repository = element(
     "section",
     "bb-thread-hover-card__repository"
   );
   if (!summary.repository.isGitRepository) {
-    const noRepository = element("p", "bb-thread-hover-card__meta");
-    noRepository.append(
+    repository.append(
       icon(
-        Folder01Icon,
-        "Folder01Icon",
+        LaptopIcon,
+        "LaptopIcon",
         "bb-thread-hover-card__icon bb-thread-hover-card__meta-icon"
       ),
-      element("span", "", "No Git repository")
+      element("span", "bb-thread-hover-card__local", "Local")
     );
-    repository.append(noRepository);
   } else {
-    const repoLine = element("p", "bb-thread-hover-card__meta");
-    repoLine.append(
+    repository.append(
       icon(
         Folder01Icon,
         "Folder01Icon",
@@ -673,7 +849,7 @@ function renderSummary(card, summary) {
       element("span", "bb-thread-hover-card__truncate", summary.repository.name)
     );
     if (summary.repository.branch) {
-      repoLine.append(
+      repository.append(
         element(
           "span",
           "bb-thread-hover-card__branch",
@@ -681,9 +857,7 @@ function renderSummary(card, summary) {
         )
       );
     }
-    repository.append(repoLine);
-    const pullRequestLine = element("p", "bb-thread-hover-card__meta");
-    pullRequestLine.classList.add("bb-thread-hover-card__pr");
+    const pullRequestLine = element("span", "bb-thread-hover-card__pr");
     pullRequestLine.dataset.kind = summary.pullRequest.kind;
     if (summary.pullRequest.kind === "available") {
       const pullRequestLink = element(
@@ -729,7 +903,7 @@ function renderSummary(card, summary) {
         element(
           "span",
           "",
-          summary.pullRequest.kind === "absent" ? "No pull request" : "Pull request unavailable"
+          summary.pullRequest.kind === "absent" ? "No PR" : "PR unavailable"
         )
       );
     }
@@ -737,12 +911,14 @@ function renderSummary(card, summary) {
   }
   content.push(repository);
   card.replaceChildren(...content);
+  refreshTimes(card);
 }
 function installHoverCards() {
   let card = null;
   let activeTrigger = null;
   let openTimer = null;
   let closeTimer = null;
+  let timeTimer = null;
   let disposed = false;
   let requestGeneration = 0;
   const cache = /* @__PURE__ */ new Map();
@@ -798,6 +974,10 @@ function installHoverCards() {
     hoverCard.classList.remove("is-visible");
     void hoverCard.offsetWidth;
     hoverCard.classList.add("is-visible");
+    if (timeTimer) clearInterval(timeTimer);
+    timeTimer = setInterval(() => {
+      if (card && !card.hidden) refreshTimes(card);
+    }, 1e3);
     const cached = cache.get(threadId);
     if (cached) renderSummary(hoverCard, cached.summary);
     else renderLoading(hoverCard);
@@ -847,6 +1027,10 @@ function installHoverCards() {
     requestGeneration += 1;
     activeTrigger?.removeAttribute("aria-describedby");
     activeTrigger = null;
+    if (timeTimer) {
+      clearInterval(timeTimer);
+      timeTimer = null;
+    }
     if (card) {
       card.hidden = true;
       card.classList.remove("is-visible");

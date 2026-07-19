@@ -33,26 +33,43 @@ Object.assign(globalThis, {
 
 const requestBodies = [];
 globalThis.fetch = async (_url, init) => {
-  requestBodies.push(JSON.parse(init.body));
+  const request = JSON.parse(init.body);
+  requestBodies.push(request);
+  const isLocal = request.threadId === "thr_local";
   return new Response(
     JSON.stringify({
       ok: true,
       result: {
+        currentTurnStartedAt: isLocal ? null : Date.now() - 65_000,
         latestUserMessage: "Create concise hover cards",
-        pullRequest: {
-          kind: "available",
-          number: 42,
-          signal: "Checks passing",
-          state: "open",
-          title: "Thread previews",
-          url: "https://github.com/acme/bb/pull/42",
+        pullRequest: isLocal
+          ? { kind: "absent" }
+          : {
+              kind: "available",
+              number: 42,
+              signal: "Checks passing",
+              state: "open",
+              title: "Thread previews",
+              url: "https://github.com/acme/bb/pull/42",
+            },
+        provider: {
+          displayName: "Codex",
+          id: "codex",
+          logoUrl: null,
+          model: "gpt-5.6-sol",
         },
-        repository: {
-          branch: "feature/hover-cards",
-          isGitRepository: true,
-          name: "acme/bb",
-        },
-        status: "active",
+        repository: isLocal
+          ? {
+              branch: null,
+              isGitRepository: false,
+              name: "Personal",
+            }
+          : {
+              branch: "feature/hover-cards",
+              isGitRepository: true,
+              name: "acme/bb",
+            },
+        status: isLocal ? "idle" : "active",
         updatedAt: Date.now(),
       },
     }),
@@ -84,7 +101,8 @@ assert.match(
   /background: color-mix\(in srgb, var\(--popover\) 82%, transparent\)/,
 );
 assert.match(style.textContent, /backdrop-filter: blur\(18px\)/);
-assert.match(style.textContent, /var\(--foreground\) 8%, transparent/);
+assert.match(style.textContent, /var\(--foreground\) 5%, transparent/);
+assert.match(style.textContent, /font-weight: 400/);
 assert.match(style.textContent, /\.bb-thread-hover-card__pr-status/);
 assert.match(style.textContent, /var\(--success\) 9%, transparent/);
 assert.match(style.textContent, /@supports not/);
@@ -107,16 +125,29 @@ assert.equal(card.dataset.bbPlugin, "thread-hover-cards");
 assert.equal(card.hasAttribute("data-bb-portaled-overlay"), true);
 assert.equal(trigger.getAttribute("aria-describedby"), "bb-thread-hover-card");
 assert.deepEqual(requestBodies, [{ threadId: "thr_1" }]);
-assert.match(card.textContent, /Agent working/);
+assert.doesNotMatch(card.textContent, /Agent working/);
+assert.match(card.textContent, /Run time 1m/);
 assert.match(card.textContent, /Updated now/);
 assert.match(card.textContent, /Create concise hover cards/);
+assert.match(card.textContent, /gpt-5\.6-sol/);
 assert.match(card.textContent, /acme\/bb/);
 assert.match(card.textContent, /#42Checks passing/);
 assert.doesNotMatch(card.textContent, /Latest request/i);
 assert.ok(card.querySelector('[data-icon="Loading03Icon"]'));
-assert.ok(card.querySelector('[data-icon="ArrowLeft03Icon"]'));
+assert.ok(
+  card
+    .querySelector(".bb-thread-hover-card__summary")
+    ?.querySelector('[data-icon="Loading03Icon"]'),
+);
+assert.ok(card.querySelector('[data-icon="OpenAiIcon"]'));
 assert.ok(card.querySelector('[data-icon="Folder01Icon"]'));
 assert.ok(card.querySelector('[data-icon="LinkSquare01Icon"]'));
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__header")?.textContent,
+  card.querySelector(".bb-thread-hover-card__runtime")?.textContent +
+    card.querySelector(".bb-thread-hover-card__updated")?.textContent,
+);
+assert.equal(card.querySelectorAll(".bb-thread-hover-card__repository").length, 1);
 
 const pullRequestLink = card.querySelector(".bb-thread-hover-card__pr-link");
 assert.ok(pullRequestLink);
@@ -187,6 +218,21 @@ await new Promise((resolve) => setTimeout(resolve, 280));
 
 assert.equal(card.hidden, true);
 assert.deepEqual(requestBodies, [{ threadId: "thr_1" }]);
+
+trigger.blur();
+trigger.dataset.sidebarThreadId = "thr_local";
+trigger.focus();
+await new Promise((resolve) => setTimeout(resolve, 20));
+
+assert.equal(card.hidden, false);
+assert.match(card.textContent, /Local/);
+assert.doesNotMatch(card.textContent, /No Git repository/);
+assert.ok(card.querySelector('[data-icon="LaptopIcon"]'));
+assert.equal(card.querySelector(".bb-thread-hover-card__runtime"), null);
+assert.deepEqual(requestBodies, [
+  { threadId: "thr_1" },
+  { threadId: "thr_local" },
+]);
 
 const pluginCssLink = window.document.querySelector(
   'link[data-bb-plugin-css="thread-hover-cards"]',
