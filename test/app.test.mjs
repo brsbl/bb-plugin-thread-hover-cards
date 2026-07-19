@@ -125,14 +125,7 @@ assert.match(
   style.textContent,
   /\.bb-thread-hover-card__message[\s\S]*?font-weight: 350/,
 );
-assert.match(
-  style.textContent,
-  /\.bb-thread-hover-card__header[\s\S]*?var\(--font-mono/,
-);
-assert.match(
-  style.textContent,
-  /\.bb-thread-hover-card__repository[\s\S]*?var\(--font-mono/,
-);
+assert.doesNotMatch(style.textContent, /--font-mono/);
 assert.match(style.textContent, /\.bb-thread-hover-card__branch-row/);
 assert.match(style.textContent, /max-width: 100%/);
 assert.match(style.textContent, /\.bb-thread-hover-card__pr-status/);
