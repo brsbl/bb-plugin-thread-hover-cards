@@ -151,7 +151,7 @@ async function currentTurnStartedAt(
   threadId: string,
   status: ThreadSummary["status"],
 ): Promise<number | null> {
-  if (!isRunningStatus(status)) return null;
+  if (!isRunningStatus(status) && status !== "idle") return null;
 
   const timeline = await safely(
     bb.sdk.threads.timeline({

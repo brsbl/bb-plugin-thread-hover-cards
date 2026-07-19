@@ -260,8 +260,19 @@ assert.deepEqual(eventListInputs, [
 ]);
 
 displayStatus = "idle";
+threadEvents = [
+  {
+    createdAt: 100,
+    data: { providerThreadId: "provider_1" },
+    id: "event_idle_turn",
+    scope: { kind: "turn" as const, turnId: "turn_idle" },
+    seq: 12_001,
+    threadId: "thr_1",
+    type: "turn/started" as const,
+  },
+];
 const idleSummary = await summaryHandler({ threadId: "thr_1" });
-assert.equal(idleSummary.currentTurnStartedAt, null);
+assert.equal(idleSummary.currentTurnStartedAt, 100);
 assert.equal(
   idleSummary.latestAssistantMessage,
   "Finished the hover card\npolish.",

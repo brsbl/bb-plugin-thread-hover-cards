@@ -127,6 +127,10 @@ export const HOVER_CARD_CSS = String.raw`
   color: color-mix(in srgb, var(--muted-foreground) 62%, transparent);
 }
 
+.bb-thread-hover-card__time-icon[data-tone="success"] {
+  color: var(--success);
+}
+
 .bb-thread-hover-card__summary,
 .bb-thread-hover-card__message,
 .bb-thread-hover-card__meta,

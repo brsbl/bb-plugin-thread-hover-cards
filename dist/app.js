@@ -544,6 +544,10 @@ var HOVER_CARD_CSS = String.raw`
   color: color-mix(in srgb, var(--muted-foreground) 62%, transparent);
 }
 
+.bb-thread-hover-card__time-icon[data-tone="success"] {
+  color: var(--success);
+}
+
 .bb-thread-hover-card__summary,
 .bb-thread-hover-card__message,
 .bb-thread-hover-card__meta,
@@ -1040,8 +1044,8 @@ function threadIdFor(trigger) {
   const value = trigger.dataset.sidebarThreadId?.trim();
   return value ? value : null;
 }
-function runTime(timestamp) {
-  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1e3));
+function runTime(timestamp, endedAt = Date.now()) {
+  const elapsedSeconds = Math.max(0, Math.floor((endedAt - timestamp) / 1e3));
   const seconds = elapsedSeconds % 60;
   const elapsedMinutes = Math.floor(elapsedSeconds / 60);
   if (elapsedMinutes < 1) return `${seconds}s`;
@@ -1053,9 +1057,10 @@ function refreshRunTime(card) {
   const runtime2 = card.querySelector("[data-turn-started-at]");
   if (runtime2) {
     const timestamp = Number(runtime2.dataset.turnStartedAt);
-    const value = runTime(timestamp);
+    const endedAt = runtime2.dataset.turnEndedAt ? Number(runtime2.dataset.turnEndedAt) : Date.now();
+    const value = runTime(timestamp, endedAt);
     runtime2.querySelector("[data-time-value]").textContent = value;
-    runtime2.title = `Run time ${value}`;
+    runtime2.title = runtime2.dataset.turnEndedAt ? `Completed in ${value}` : `Run time ${value}`;
   }
 }
 function formatModelLabel(value, providerId) {
@@ -1263,18 +1268,20 @@ function renderSummary(card, summary) {
     const times = element("div", "bb-thread-hover-card__times");
     const runtime2 = element("span", "bb-thread-hover-card__runtime");
     runtime2.dataset.turnStartedAt = String(summary.currentTurnStartedAt);
+    const isDone = summary.status === "idle";
+    if (isDone) runtime2.dataset.turnEndedAt = String(summary.updatedAt);
     const runtimeValue = element("span", "bb-thread-hover-card__time-value");
     runtimeValue.dataset.timeValue = "";
     const runtimeStatus = statusPresentation(summary.status);
-    const usesWorkingStatusIcon = runtimeStatus.animated && runtimeStatus.icon !== null && runtimeStatus.iconName !== null;
+    const usesThreadStatusIcon = (runtimeStatus.animated || isDone) && runtimeStatus.icon !== null && runtimeStatus.iconName !== null;
     const runtimeIcon = icon(
-      usesWorkingStatusIcon ? runtimeStatus.icon : AlarmClockIcon,
-      usesWorkingStatusIcon ? runtimeStatus.iconName : "AlarmClockIcon",
+      usesThreadStatusIcon ? runtimeStatus.icon : AlarmClockIcon,
+      usesThreadStatusIcon ? runtimeStatus.iconName : "AlarmClockIcon",
       "bb-thread-hover-card__icon bb-thread-hover-card__time-icon"
     );
-    if (usesWorkingStatusIcon) {
-      runtimeIcon.dataset.animated = "true";
+    if (usesThreadStatusIcon) {
       runtimeIcon.dataset.tone = runtimeStatus.tone;
+      if (runtimeStatus.animated) runtimeIcon.dataset.animated = "true";
     }
     runtime2.append(
       runtimeIcon,

@@ -14625,7 +14625,7 @@ function isRunningStatus(status) {
 }
 var TURN_START_WINDOW = 256;
 async function currentTurnStartedAt(bb, threadId, status) {
-  if (!isRunningStatus(status)) return null;
+  if (!isRunningStatus(status) && status !== "idle") return null;
   const timeline = await safely(
     bb.sdk.threads.timeline({
       threadId,

@@ -41,11 +41,16 @@ globalThis.fetch = async (_url, init) => {
   const hasNoPullRequest = request.threadId === "thr_no_pr";
   const pullRequestUnavailable = request.threadId === "thr_pr_unavailable";
   const isDraftPullRequest = request.threadId === "thr_draft_pr";
+  const now = Date.now();
   const response = new Response(
     JSON.stringify({
       ok: true,
       result: {
-        currentTurnStartedAt: isLocal ? null : Date.now() - 65_000,
+        currentTurnStartedAt: isLocal
+          ? now - 185_000
+          : hasNoPullRequest
+            ? null
+            : now - 65_000,
         latestAssistantMessage: isLocal
           ? "**Done**—hover cards are *ready* for foo_bar_baz, \\_literal\\_, and __tests__ with `Cmd+R`.\n\n## Canary\nIgnore this secondary section.\n\n| Work | PR | Status |\n| --- | --- | --- |\n| Hover cards | #42 | Ready |"
           : null,
@@ -85,7 +90,7 @@ globalThis.fetch = async (_url, init) => {
               path: "/workspace/acme/bb",
             },
         status: isLocal ? "idle" : "active",
-        updatedAt: Date.now(),
+        updatedAt: isLocal ? now - 65_000 : now,
       },
     }),
     { headers: { "content-type": "application/json" }, status: 200 },
@@ -128,6 +133,10 @@ assert.match(style.textContent, /font-weight: 400/);
 assert.match(
   style.textContent,
   /\.bb-thread-hover-card__message[\s\S]*?font-weight: 350/,
+);
+assert.match(
+  style.textContent,
+  /\.bb-thread-hover-card__time-icon\[data-tone="success"\][\s\S]*?var\(--success\)/,
 );
 assert.match(
   style.textContent,
@@ -418,7 +427,35 @@ await new Promise((resolve) => setTimeout(resolve, 20));
 
 assert.equal(card.hidden, false);
 assert.match(card.textContent, /~\/\.bb\/…\/env_pmgnprh2j6/);
-assert.equal(card.querySelector(".bb-thread-hover-card__times"), null);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__runtime [data-time-value]")
+    ?.textContent,
+  "2m",
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__runtime")?.title,
+  "Completed in 2m",
+);
+assert.equal(
+  card
+    .querySelector(".bb-thread-hover-card__runtime")
+    ?.querySelector('[data-icon="CheckmarkCircle02Icon"]')
+    ?.getAttribute("data-tone"),
+  "success",
+);
+assert.equal(
+  card
+    .querySelector(".bb-thread-hover-card__runtime")
+    ?.querySelector('[data-icon="CheckmarkCircle02Icon"]')
+    ?.hasAttribute("data-animated"),
+  false,
+);
+assert.equal(
+  card
+    .querySelector(".bb-thread-hover-card__runtime")
+    ?.querySelector('[data-icon="AlarmClockIcon"]'),
+  null,
+);
 assert.equal(
   card.querySelector(".bb-thread-hover-card__local")?.getAttribute("aria-label"),
   "Local workspace: /Users/test/.bb/personal-workspaces/env_pmgnprh2j6",
@@ -452,7 +489,6 @@ assert.equal(
   card.querySelector(".bb-thread-hover-card__status-icon")?.dataset.tone,
   "success",
 );
-assert.equal(card.querySelector(".bb-thread-hover-card__runtime"), null);
 assert.deepEqual(requestBodies, [
   { threadId: "thr_1" },
   { threadId: "thr_1" },
@@ -467,6 +503,7 @@ await new Promise((resolve) => setTimeout(resolve, 20));
 
 assert.equal(card.hidden, false);
 assert.match(card.textContent, /acme\/bb/);
+assert.equal(card.querySelector(".bb-thread-hover-card__times"), null);
 assert.doesNotMatch(card.textContent, /No PR/);
 assert.equal(card.querySelector(".bb-thread-hover-card__pr"), null);
 assert.deepEqual(
