@@ -133,8 +133,28 @@ export const HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__summary {
+  position: relative;
   min-width: 0;
   margin-top: 0.625rem;
+  padding-block: 0.1875rem;
+  overflow: hidden;
+  border-radius: 0.25rem;
+}
+
+.bb-thread-hover-card__summary[data-working="true"]::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    color-mix(in srgb, var(--foreground) 6%, transparent) 50%,
+    transparent 60%
+  );
+  background-position: 130% 0;
+  background-size: 220% 100%;
+  content: "";
+  pointer-events: none;
+  animation: bb-thread-hover-card-message-shimmer 3.4s ease-in-out infinite;
 }
 
 .bb-thread-hover-card__message {
@@ -401,6 +421,17 @@ export const HOVER_CARD_CSS = String.raw`
   }
 }
 
+@keyframes bb-thread-hover-card-message-shimmer {
+  0%,
+  32% {
+    background-position: 130% 0;
+  }
+
+  100% {
+    background-position: -130% 0;
+  }
+}
+
 .bb-thread-hover-card__status-icon[data-animated="true"],
 .bb-thread-hover-card__time-icon[data-animated="true"] {
   animation: bb-thread-hover-card-spin 1s linear infinite;
@@ -409,7 +440,8 @@ export const HOVER_CARD_CSS = String.raw`
 @media (prefers-reduced-motion: reduce) {
   .bb-thread-hover-card.is-visible,
   .bb-thread-hover-card__status-icon[data-animated="true"],
-  .bb-thread-hover-card__time-icon[data-animated="true"] {
+  .bb-thread-hover-card__time-icon[data-animated="true"],
+  .bb-thread-hover-card__summary[data-working="true"]::after {
     animation: none;
   }
 }

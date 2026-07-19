@@ -145,6 +145,14 @@ assert.match(
 );
 assert.match(
   style.textContent,
+  /\.bb-thread-hover-card__summary \{[\s\S]*?padding-block: 0\.1875rem/,
+);
+assert.match(
+  style.textContent,
+  /\.bb-thread-hover-card__summary\[data-working="true"\]::after[\s\S]*?bb-thread-hover-card-message-shimmer/,
+);
+assert.match(
+  style.textContent,
   /\.bb-thread-hover-card__time-icon\[data-tone="success"\][\s\S]*?var\(--success\)/,
 );
 assert.match(
@@ -304,6 +312,10 @@ assert.deepEqual(
     "bb-thread-hover-card__summary",
     "bb-thread-hover-card__context",
   ],
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__summary")?.dataset.working,
+  "true",
 );
 
 const pullRequestLink = card.querySelector(".bb-thread-hover-card__pr-link");
@@ -553,6 +565,10 @@ assert.match(
 assert.doesNotMatch(card.textContent, /Agent update—implementing/);
 assert.doesNotMatch(card.textContent, /##|\|\s*Work\s*\||---|Canary/);
 assert.doesNotMatch(card.textContent, /No Git repository/);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__summary")?.dataset.working,
+  undefined,
+);
 assert.ok(card.querySelector(".bb-thread-hover-card__inline-strong"));
 assert.ok(card.querySelector(".bb-thread-hover-card__inline-emphasis"));
 assert.ok(card.querySelector(".bb-thread-hover-card__inline-code"));

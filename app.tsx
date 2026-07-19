@@ -582,6 +582,7 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
 
   if (summaryMessage) {
     const request = element("section", "bb-thread-hover-card__summary");
+    if (runtimeStatus.animated) request.dataset.working = "true";
     request.append(messagePreview(summaryMessage, true));
     content.push(request);
   }
