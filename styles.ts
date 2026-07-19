@@ -8,7 +8,7 @@ export const HOVER_CARD_CSS = String.raw`
   padding: 0.75rem;
   border: 1px solid transparent;
   border-color:
-    color-mix(in srgb, var(--foreground) 5%, transparent);
+    color-mix(in srgb, var(--foreground) 4%, transparent);
   border-radius: var(--radius-lg, 0.5rem);
   background: var(--popover);
   background: color-mix(in srgb, var(--popover) 82%, transparent);
@@ -43,7 +43,7 @@ export const HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__header {
-  gap: 0.625rem;
+  gap: 0.5rem;
   color: var(--muted-foreground);
   font-size: 0.6875rem;
   font-weight: 400;
@@ -98,7 +98,7 @@ export const HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__times {
   flex: none;
-  gap: 0.5rem;
+  gap: 0.375rem;
   margin-left: auto;
   white-space: nowrap;
 }
@@ -146,11 +146,21 @@ export const HOVER_CARD_CSS = String.raw`
   font-weight: 400;
 }
 
+.bb-thread-hover-card__provider-model.bb-thread-hover-card__truncate {
+  color: var(--muted-foreground);
+}
+
 .bb-thread-hover-card__repository {
   gap: 0.375rem;
   margin-top: 0.375rem;
   overflow: hidden;
+  font-size: 0.6875rem;
   white-space: nowrap;
+}
+
+.bb-thread-hover-card__repository > .bb-thread-hover-card__truncate,
+.bb-thread-hover-card__local {
+  color: var(--muted-foreground);
 }
 
 .bb-thread-hover-card__meta {
@@ -181,8 +191,8 @@ export const HOVER_CARD_CSS = String.raw`
   overflow: hidden;
   padding: 0.0625rem 0.3rem;
   border-radius: 0.25rem;
-  background: color-mix(in srgb, var(--foreground) 7%, transparent);
-  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  color: var(--muted-foreground);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.6875rem;
   text-overflow: ellipsis;
@@ -206,8 +216,30 @@ export const HOVER_CARD_CSS = String.raw`
   text-decoration: none;
 }
 
-.bb-thread-hover-card__local {
-  color: var(--foreground);
+.bb-thread-hover-card__inline-code {
+  padding: 0.025rem 0.175rem;
+  border-radius: 0.2rem;
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.bb-thread-hover-card__inline-link {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+  text-underline-offset: 0.1rem;
+}
+
+.bb-thread-hover-card__inline-strong {
+  font-weight: 550;
+}
+
+.bb-thread-hover-card__inline-emphasis {
+  font-style: italic;
+}
+
+.bb-thread-hover-card__inline-strike {
+  color: var(--muted-foreground);
 }
 
 .bb-thread-hover-card__pr-link:hover {

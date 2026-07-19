@@ -71,9 +71,15 @@ async function safely<T>(promise: Promise<T>): Promise<T | null> {
 }
 
 function normalizeMessage(value: string): string {
-  const normalized = value.replace(/\s+/g, " ").trim();
-  return normalized.length > 300
-    ? `${normalized.slice(0, 297).trimEnd()}…`
+  const normalized = value
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/[\t ]+/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return normalized.length > 1_600
+    ? `${normalized.slice(0, 1_599).trimEnd()}…`
     : normalized;
 }
 
@@ -89,7 +95,7 @@ function latestVisibleMessage(
         ? [item.text]
         : [],
     )
-    .join(" ");
+    .join("\n\n");
   const normalized = normalizeMessage(text);
   return normalized || null;
 }

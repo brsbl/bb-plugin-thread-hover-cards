@@ -43,9 +43,9 @@ globalThis.fetch = async (_url, init) => {
       result: {
         currentTurnStartedAt: isLocal ? null : Date.now() - 65_000,
         latestAssistantMessage: isLocal
-          ? "Hover cards are ready to use"
+          ? "**Done**—hover cards are ready to use with `Cmd+R`.\n\n## Canary\nIgnore this secondary section.\n\n| Work | PR | Status |\n| --- | --- | --- |\n| Hover cards | #42 | Ready |"
           : null,
-        latestUserMessage: "Create concise hover cards",
+        latestUserMessage: "**Create** concise hover cards",
         pullRequest: isLocal || hasNoPullRequest
           ? { kind: "absent" }
           : {
@@ -105,7 +105,7 @@ assert.match(
   /background: color-mix\(in srgb, var\(--popover\) 82%, transparent\)/,
 );
 assert.match(style.textContent, /backdrop-filter: blur\(18px\)/);
-assert.match(style.textContent, /var\(--foreground\) 5%, transparent/);
+assert.match(style.textContent, /var\(--foreground\) 4%, transparent/);
 assert.match(style.textContent, /font-weight: 400/);
 assert.match(
   style.textContent,
@@ -134,9 +134,10 @@ assert.equal(card.hasAttribute("data-bb-portaled-overlay"), true);
 assert.equal(trigger.getAttribute("aria-describedby"), "bb-thread-hover-card");
 assert.deepEqual(requestBodies, [{ threadId: "thr_1" }]);
 assert.doesNotMatch(card.textContent, /Agent working/);
-assert.match(card.textContent, /Run time 1m/);
+assert.match(card.textContent, /Run 1m/);
 assert.match(card.textContent, /Updated now/);
 assert.match(card.textContent, /Create concise hover cards/);
+assert.equal(card.querySelector(".bb-thread-hover-card__inline-strong"), null);
 assert.match(card.textContent, /gpt-5\.6-sol/);
 assert.match(card.textContent, /acme\/bb/);
 assert.match(card.textContent, /#42Checks passing/);
@@ -238,9 +239,12 @@ await new Promise((resolve) => setTimeout(resolve, 20));
 
 assert.equal(card.hidden, false);
 assert.match(card.textContent, /Local/);
-assert.match(card.textContent, /Hover cards are ready to use/);
+assert.match(card.textContent, /Done—hover cards are ready to use with Cmd\+R\./);
 assert.doesNotMatch(card.textContent, /Create concise hover cards/);
+assert.doesNotMatch(card.textContent, /##|\|\s*Work\s*\||---|Canary/);
 assert.doesNotMatch(card.textContent, /No Git repository/);
+assert.ok(card.querySelector(".bb-thread-hover-card__inline-strong"));
+assert.ok(card.querySelector(".bb-thread-hover-card__inline-code"));
 assert.ok(card.querySelector('[data-icon="LaptopIcon"]'));
 assert.ok(card.querySelector('[data-icon="CheckmarkCircle02Icon"]'));
 assert.equal(

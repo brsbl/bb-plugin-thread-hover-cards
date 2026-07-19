@@ -14583,15 +14583,15 @@ async function safely(promise2) {
   }
 }
 function normalizeMessage(value) {
-  const normalized = value.replace(/\s+/g, " ").trim();
-  return normalized.length > 300 ? `${normalized.slice(0, 297).trimEnd()}\u2026` : normalized;
+  const normalized = value.replace(/\r\n?/g, "\n").split("\n").map((line) => line.replace(/[\t ]+/g, " ").trim()).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  return normalized.length > 1600 ? `${normalized.slice(0, 1599).trimEnd()}\u2026` : normalized;
 }
 function latestVisibleMessage(history) {
   const latest = [...history].sort((left, right) => right.createdAt - left.createdAt)[0];
   if (!latest) return null;
   const text = latest.input.flatMap(
     (item) => item.type === "text" && item.visibility !== "agent-only" ? [item.text] : []
-  ).join(" ");
+  ).join("\n\n");
   const normalized = normalizeMessage(text);
   return normalized || null;
 }

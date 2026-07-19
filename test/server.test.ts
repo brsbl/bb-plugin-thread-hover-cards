@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { markdownPreview } from "../markdown-preview";
 import plugin, { type ThreadSummary } from "../server";
 
 type SummaryHandler = (input: {
@@ -127,7 +128,7 @@ const summary = await summaryHandler({ threadId: "thr_1" });
 assert.deepEqual(summary, {
   currentTurnStartedAt: 100,
   latestAssistantMessage: null,
-  latestUserMessage: "Fix the hover card today",
+  latestUserMessage: "Fix the hover card\ntoday",
   pullRequest: {
     kind: "available",
     number: 42,
@@ -157,8 +158,21 @@ const idleSummary = await summaryHandler({ threadId: "thr_1" });
 assert.equal(idleSummary.currentTurnStartedAt, null);
 assert.equal(
   idleSummary.latestAssistantMessage,
-  "Finished the hover card polish.",
+  "Finished the hover card\npolish.",
 );
 assert.equal(idleSummary.status, "idle");
 assert.equal(outputCalls, 1);
 assert.deepEqual(logMessages, ["Thread hover cards loaded."]);
+assert.deepEqual(
+  markdownPreview(
+    "| Work | PR | Status |\n| --- | --- | --- |\n| Hover cards | #42 | Ready |",
+  ),
+  {
+    inline: "Work: Hover cards · PR: #42 · Status: Ready",
+    kind: "table",
+  },
+);
+assert.deepEqual(markdownPreview("- First result\n- Second result\n- Extra"), {
+  inline: "First result · Second result",
+  kind: "list",
+});

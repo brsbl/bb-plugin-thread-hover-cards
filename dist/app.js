@@ -300,7 +300,7 @@ var HOVER_CARD_CSS = String.raw`
   padding: 0.75rem;
   border: 1px solid transparent;
   border-color:
-    color-mix(in srgb, var(--foreground) 5%, transparent);
+    color-mix(in srgb, var(--foreground) 4%, transparent);
   border-radius: var(--radius-lg, 0.5rem);
   background: var(--popover);
   background: color-mix(in srgb, var(--popover) 82%, transparent);
@@ -335,7 +335,7 @@ var HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__header {
-  gap: 0.625rem;
+  gap: 0.5rem;
   color: var(--muted-foreground);
   font-size: 0.6875rem;
   font-weight: 400;
@@ -390,7 +390,7 @@ var HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__times {
   flex: none;
-  gap: 0.5rem;
+  gap: 0.375rem;
   margin-left: auto;
   white-space: nowrap;
 }
@@ -438,11 +438,21 @@ var HOVER_CARD_CSS = String.raw`
   font-weight: 400;
 }
 
+.bb-thread-hover-card__provider-model.bb-thread-hover-card__truncate {
+  color: var(--muted-foreground);
+}
+
 .bb-thread-hover-card__repository {
   gap: 0.375rem;
   margin-top: 0.375rem;
   overflow: hidden;
+  font-size: 0.6875rem;
   white-space: nowrap;
+}
+
+.bb-thread-hover-card__repository > .bb-thread-hover-card__truncate,
+.bb-thread-hover-card__local {
+  color: var(--muted-foreground);
 }
 
 .bb-thread-hover-card__meta {
@@ -473,8 +483,8 @@ var HOVER_CARD_CSS = String.raw`
   overflow: hidden;
   padding: 0.0625rem 0.3rem;
   border-radius: 0.25rem;
-  background: color-mix(in srgb, var(--foreground) 7%, transparent);
-  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  color: var(--muted-foreground);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.6875rem;
   text-overflow: ellipsis;
@@ -498,8 +508,30 @@ var HOVER_CARD_CSS = String.raw`
   text-decoration: none;
 }
 
-.bb-thread-hover-card__local {
-  color: var(--foreground);
+.bb-thread-hover-card__inline-code {
+  padding: 0.025rem 0.175rem;
+  border-radius: 0.2rem;
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.bb-thread-hover-card__inline-link {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+  text-underline-offset: 0.1rem;
+}
+
+.bb-thread-hover-card__inline-strong {
+  font-weight: 550;
+}
+
+.bb-thread-hover-card__inline-emphasis {
+  font-style: italic;
+}
+
+.bb-thread-hover-card__inline-strike {
+  color: var(--muted-foreground);
 }
 
 .bb-thread-hover-card__pr-link:hover {
@@ -595,6 +627,99 @@ var HOVER_CARD_CSS = String.raw`
   }
 }
 `;
+
+// markdown-preview.ts
+function tableCells(line) {
+  return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim());
+}
+function isTableDivider(line) {
+  const cells = tableCells(line);
+  return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell.replace(/\s+/g, "")));
+}
+function cleanBlockText(value) {
+  return value.replace(/<\/?[A-Za-z][^>]*>/g, "").replace(/\s+/g, " ").trim();
+}
+function tablePreview(lines, start2) {
+  if (!lines[start2]?.includes("|") || !isTableDivider(lines[start2 + 1] ?? "")) {
+    return null;
+  }
+  const headers = tableCells(lines[start2]);
+  const values = tableCells(lines[start2 + 2] ?? "");
+  const pairs = headers.map((header, index) => {
+    const value = values[index];
+    if (!header || !value) return null;
+    return `${cleanBlockText(header)}: ${cleanBlockText(value)}`;
+  }).filter((pair) => Boolean(pair)).slice(0, 3);
+  const inline = pairs.length > 0 ? pairs.join(" \xB7 ") : headers.join(" \xB7 ");
+  return inline ? { inline, kind: "table" } : null;
+}
+function markdownPreview(source) {
+  let lines = source.replace(/\r\n?/g, "\n").split("\n");
+  let start2 = lines.findIndex((line) => line.trim().length > 0);
+  if (start2 < 0) return null;
+  if (lines[start2]?.trim() === "---") {
+    const frontmatterEnd = lines.findIndex(
+      (line, index) => index > start2 && line.trim() === "---"
+    );
+    if (frontmatterEnd > start2) {
+      lines = lines.slice(frontmatterEnd + 1);
+      start2 = lines.findIndex((line) => line.trim().length > 0);
+      if (start2 < 0) return null;
+    }
+  }
+  const table = tablePreview(lines, start2);
+  if (table) return table;
+  const first = lines[start2].trim();
+  const fence = first.match(/^(```+|~~~+)\s*[^\s]*\s*$/);
+  if (fence) {
+    const codeLines = [];
+    for (let index = start2 + 1; index < lines.length; index += 1) {
+      const line = lines[index];
+      if (line.trim().startsWith(fence[1])) break;
+      if (line.trim() || codeLines.length > 0) codeLines.push(line.trim());
+    }
+    const inline2 = cleanBlockText(codeLines.join(" "));
+    return inline2 ? { inline: inline2, kind: "code" } : null;
+  }
+  const heading = first.match(/^#{1,6}\s+(.+)$/);
+  if (heading) {
+    const inline2 = cleanBlockText(heading[1]);
+    return inline2 ? { inline: inline2, kind: "heading" } : null;
+  }
+  const listItem = first.match(/^(?:[-+*]|\d+[.)])\s+(.+)$/);
+  if (listItem) {
+    const items = [];
+    for (let index = start2; index < lines.length && items.length < 2; index += 1) {
+      const match = lines[index].trim().match(/^(?:[-+*]|\d+[.)])\s+(.+)$/);
+      if (!match) break;
+      items.push(cleanBlockText(match[1].replace(/^\[[ xX]\]\s*/, "")));
+    }
+    const inline2 = items.filter(Boolean).join(" \xB7 ");
+    return inline2 ? { inline: inline2, kind: "list" } : null;
+  }
+  if (first.startsWith(">")) {
+    const quoteLines = [];
+    for (let index = start2; index < lines.length; index += 1) {
+      const match = lines[index].trim().match(/^>\s?(.*)$/);
+      if (!match) break;
+      quoteLines.push(match[1]);
+    }
+    const inline2 = cleanBlockText(quoteLines.join(" "));
+    return inline2 ? { inline: inline2, kind: "quote" } : null;
+  }
+  const paragraph = [];
+  for (let index = start2; index < lines.length; index += 1) {
+    const line = lines[index].trim();
+    if (!line) break;
+    if (index > start2 && tablePreview(lines, index)) break;
+    if (index > start2 && /^(?:#{1,6}\s|```|~~~|>|[-+*]\s|\d+[.)]\s)/.test(line)) {
+      break;
+    }
+    paragraph.push(line);
+  }
+  const inline = cleanBlockText(paragraph.join(" "));
+  return inline ? { inline, kind: "paragraph" } : null;
+}
 
 // app.tsx
 var CARD_ID = "bb-thread-hover-card";
@@ -719,19 +844,92 @@ function runTime(timestamp) {
   if (elapsedMinutes < 1) return `${seconds}s`;
   const minutes = elapsedMinutes % 60;
   const hours = Math.floor(elapsedMinutes / 60);
-  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m ${seconds}s`;
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }
 function refreshTimes(card) {
   const runtime2 = card.querySelector("[data-turn-started-at]");
   if (runtime2) {
     const timestamp = Number(runtime2.dataset.turnStartedAt);
-    runtime2.textContent = `Run time ${runTime(timestamp)}`;
+    runtime2.textContent = `Run ${runTime(timestamp)}`;
   }
   const updated = card.querySelector("[data-updated-at]");
   if (updated) {
     const timestamp = Number(updated.dataset.updatedAt);
     updated.textContent = `Updated ${relativeTime(timestamp)}`;
   }
+}
+function nextInlinePattern(source) {
+  const patterns = [
+    ["image", /!\[([^\]]*)\]\([^)]+\)/],
+    ["link", /\[([^\]]+)\]\([^)]+\)/],
+    ["code", /`([^`\n]+)`/],
+    ["strong", /(?:\*\*|__)(.+?)(?:\*\*|__)/],
+    ["strike", /~~(.+?)~~/],
+    ["emphasis", /(?:\*|_)([^*_\n]+)(?:\*|_)/]
+  ];
+  let next = null;
+  for (const [type, pattern] of patterns) {
+    const match = source.match(pattern);
+    if (!match || match.index === void 0) continue;
+    if (!next || match.index < (next.match.index ?? Number.POSITIVE_INFINITY)) {
+      next = { match, type };
+    }
+  }
+  return next;
+}
+function appendInlineMarkdown(parent, source, allowEmphasis) {
+  let remaining = source;
+  while (remaining) {
+    const next = nextInlinePattern(remaining);
+    if (!next || next.match.index === void 0) {
+      parent.append(
+        document.createTextNode(
+          remaining.replace(/\\([\\`*_[\]{}()#+\-.!|>])/g, "$1")
+        )
+      );
+      return;
+    }
+    if (next.match.index > 0) {
+      parent.append(
+        document.createTextNode(
+          remaining.slice(0, next.match.index).replace(/\\([\\`*_[\]{}()#+\-.!|>])/g, "$1")
+        )
+      );
+    }
+    const value = next.match[1] ?? "";
+    if (next.type === "code") {
+      parent.append(element("code", "bb-thread-hover-card__inline-code", value));
+    } else if (next.type === "image") {
+      parent.append(document.createTextNode(value || "Image"));
+    } else if (next.type === "link") {
+      const label = element("span", "bb-thread-hover-card__inline-link");
+      appendInlineMarkdown(label, value, allowEmphasis);
+      parent.append(label);
+    } else if (next.type === "strike") {
+      const strike = element("s", "bb-thread-hover-card__inline-strike");
+      appendInlineMarkdown(strike, value, allowEmphasis);
+      parent.append(strike);
+    } else if (allowEmphasis) {
+      const emphasis = element(
+        next.type === "strong" ? "strong" : "em",
+        next.type === "strong" ? "bb-thread-hover-card__inline-strong" : "bb-thread-hover-card__inline-emphasis"
+      );
+      appendInlineMarkdown(emphasis, value, allowEmphasis);
+      parent.append(emphasis);
+    } else {
+      appendInlineMarkdown(parent, value, allowEmphasis);
+    }
+    remaining = remaining.slice(next.match.index + next.match[0].length);
+  }
+}
+function messagePreview(source, allowEmphasis) {
+  const message = element("p", "bb-thread-hover-card__message");
+  const preview = markdownPreview(source);
+  if (preview) {
+    message.dataset.markdownBlock = preview.kind;
+    appendInlineMarkdown(message, preview.inline, allowEmphasis);
+  }
+  return message;
 }
 function providerIcon(provider) {
   if (provider.logoUrl) {
@@ -833,7 +1031,8 @@ function renderSummary(card, summary) {
   times.append(updated);
   header.append(times);
   const content = [header];
-  const summaryMessage = summary.status === "idle" ? summary.latestAssistantMessage ?? summary.latestUserMessage : summary.latestUserMessage;
+  const showsAssistantMessage = summary.status === "idle" && summary.latestAssistantMessage !== null;
+  const summaryMessage = showsAssistantMessage ? summary.latestAssistantMessage : summary.latestUserMessage;
   if (summaryMessage) {
     const request = element("section", "bb-thread-hover-card__summary");
     const statusDetails = statusPresentation(summary.status);
@@ -850,13 +1049,7 @@ function renderSummary(card, summary) {
       statusIcon.setAttribute("role", "img");
       request.append(statusIcon);
     }
-    request.append(
-      element(
-        "p",
-        "bb-thread-hover-card__message",
-        summaryMessage
-      )
-    );
+    request.append(messagePreview(summaryMessage, showsAssistantMessage));
     content.push(request);
   }
   const repository = element(

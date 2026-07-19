@@ -14,6 +14,7 @@ import {
 } from "./icons";
 import type { ThreadSummary } from "./server";
 import { HOVER_CARD_CSS } from "./styles";
+import { markdownPreview } from "./markdown-preview";
 
 const CARD_ID = "bb-thread-hover-card";
 const STYLE_ID = "bb-thread-hover-card-styles";
@@ -204,14 +205,14 @@ function runTime(timestamp: number): string {
 
   const minutes = elapsedMinutes % 60;
   const hours = Math.floor(elapsedMinutes / 60);
-  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m ${seconds}s`;
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }
 
 function refreshTimes(card: HTMLElement): void {
   const runtime = card.querySelector<HTMLElement>("[data-turn-started-at]");
   if (runtime) {
     const timestamp = Number(runtime.dataset.turnStartedAt);
-    runtime.textContent = `Run time ${runTime(timestamp)}`;
+    runtime.textContent = `Run ${runTime(timestamp)}`;
   }
 
   const updated = card.querySelector<HTMLElement>("[data-updated-at]");
@@ -219,6 +220,101 @@ function refreshTimes(card: HTMLElement): void {
     const timestamp = Number(updated.dataset.updatedAt);
     updated.textContent = `Updated ${relativeTime(timestamp)}`;
   }
+}
+
+interface InlinePattern {
+  match: RegExpMatchArray;
+  type: "code" | "emphasis" | "image" | "link" | "strike" | "strong";
+}
+
+function nextInlinePattern(source: string): InlinePattern | null {
+  const patterns: Array<[InlinePattern["type"], RegExp]> = [
+    ["image", /!\[([^\]]*)\]\([^)]+\)/],
+    ["link", /\[([^\]]+)\]\([^)]+\)/],
+    ["code", /`([^`\n]+)`/],
+    ["strong", /(?:\*\*|__)(.+?)(?:\*\*|__)/],
+    ["strike", /~~(.+?)~~/],
+    ["emphasis", /(?:\*|_)([^*_\n]+)(?:\*|_)/],
+  ];
+  let next: InlinePattern | null = null;
+  for (const [type, pattern] of patterns) {
+    const match = source.match(pattern);
+    if (!match || match.index === undefined) continue;
+    if (!next || match.index < (next.match.index ?? Number.POSITIVE_INFINITY)) {
+      next = { match, type };
+    }
+  }
+  return next;
+}
+
+function appendInlineMarkdown(
+  parent: HTMLElement,
+  source: string,
+  allowEmphasis: boolean,
+): void {
+  let remaining = source;
+  while (remaining) {
+    const next = nextInlinePattern(remaining);
+    if (!next || next.match.index === undefined) {
+      parent.append(
+        document.createTextNode(
+          remaining.replace(/\\([\\`*_[\]{}()#+\-.!|>])/g, "$1"),
+        ),
+      );
+      return;
+    }
+
+    if (next.match.index > 0) {
+      parent.append(
+        document.createTextNode(
+          remaining
+            .slice(0, next.match.index)
+            .replace(/\\([\\`*_[\]{}()#+\-.!|>])/g, "$1"),
+        ),
+      );
+    }
+
+    const value = next.match[1] ?? "";
+    if (next.type === "code") {
+      parent.append(element("code", "bb-thread-hover-card__inline-code", value));
+    } else if (next.type === "image") {
+      parent.append(document.createTextNode(value || "Image"));
+    } else if (next.type === "link") {
+      const label = element("span", "bb-thread-hover-card__inline-link");
+      appendInlineMarkdown(label, value, allowEmphasis);
+      parent.append(label);
+    } else if (next.type === "strike") {
+      const strike = element("s", "bb-thread-hover-card__inline-strike");
+      appendInlineMarkdown(strike, value, allowEmphasis);
+      parent.append(strike);
+    } else if (allowEmphasis) {
+      const emphasis = element(
+        next.type === "strong" ? "strong" : "em",
+        next.type === "strong"
+          ? "bb-thread-hover-card__inline-strong"
+          : "bb-thread-hover-card__inline-emphasis",
+      );
+      appendInlineMarkdown(emphasis, value, allowEmphasis);
+      parent.append(emphasis);
+    } else {
+      appendInlineMarkdown(parent, value, allowEmphasis);
+    }
+
+    remaining = remaining.slice(next.match.index + next.match[0].length);
+  }
+}
+
+function messagePreview(
+  source: string,
+  allowEmphasis: boolean,
+): HTMLParagraphElement {
+  const message = element("p", "bb-thread-hover-card__message");
+  const preview = markdownPreview(source);
+  if (preview) {
+    message.dataset.markdownBlock = preview.kind;
+    appendInlineMarkdown(message, preview.inline, allowEmphasis);
+  }
+  return message;
 }
 
 function providerIcon(
@@ -342,10 +438,11 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
   header.append(times);
 
   const content: HTMLElement[] = [header];
-  const summaryMessage =
-    summary.status === "idle"
-      ? summary.latestAssistantMessage ?? summary.latestUserMessage
-      : summary.latestUserMessage;
+  const showsAssistantMessage =
+    summary.status === "idle" && summary.latestAssistantMessage !== null;
+  const summaryMessage = showsAssistantMessage
+    ? summary.latestAssistantMessage
+    : summary.latestUserMessage;
 
   if (summaryMessage) {
     const request = element("section", "bb-thread-hover-card__summary");
@@ -363,13 +460,7 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
       statusIcon.setAttribute("role", "img");
       request.append(statusIcon);
     }
-    request.append(
-      element(
-        "p",
-        "bb-thread-hover-card__message",
-        summaryMessage,
-      ),
-    );
+    request.append(messagePreview(summaryMessage, showsAssistantMessage));
     content.push(request);
   }
 
