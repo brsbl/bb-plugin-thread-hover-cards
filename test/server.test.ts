@@ -7,6 +7,8 @@ type SummaryHandler = (input: {
 
 let summaryHandler: SummaryHandler | undefined;
 const logMessages: string[] = [];
+let displayStatus: "active" | "idle" = "active";
+let outputCalls = 0;
 
 const fakeBb = {
   log: {
@@ -84,9 +86,13 @@ const fakeBb = {
           environmentId: "env_1",
           projectId: "proj_1",
           providerId: "codex",
-          runtime: { displayStatus: "active" },
+          runtime: { displayStatus },
           updatedAt: 123,
         };
+      },
+      async output() {
+        outputCalls += 1;
+        return { output: "  Finished   the hover card \n polish.  " };
       },
       async promptHistory() {
         return [
@@ -120,6 +126,7 @@ assert.ok(summaryHandler, "registers the threadSummary RPC handler");
 const summary = await summaryHandler({ threadId: "thr_1" });
 assert.deepEqual(summary, {
   currentTurnStartedAt: 100,
+  latestAssistantMessage: null,
   latestUserMessage: "Fix the hover card today",
   pullRequest: {
     kind: "available",
@@ -143,4 +150,15 @@ assert.deepEqual(summary, {
   status: "active",
   updatedAt: 123,
 });
+assert.equal(outputCalls, 0);
+
+displayStatus = "idle";
+const idleSummary = await summaryHandler({ threadId: "thr_1" });
+assert.equal(idleSummary.currentTurnStartedAt, null);
+assert.equal(
+  idleSummary.latestAssistantMessage,
+  "Finished the hover card polish.",
+);
+assert.equal(idleSummary.status, "idle");
+assert.equal(outputCalls, 1);
 assert.deepEqual(logMessages, ["Thread hover cards loaded."]);

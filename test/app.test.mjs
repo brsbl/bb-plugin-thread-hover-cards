@@ -41,6 +41,9 @@ globalThis.fetch = async (_url, init) => {
       ok: true,
       result: {
         currentTurnStartedAt: isLocal ? null : Date.now() - 65_000,
+        latestAssistantMessage: isLocal
+          ? "Hover cards are ready to use"
+          : null,
         latestUserMessage: "Create concise hover cards",
         pullRequest: isLocal
           ? { kind: "absent" }
@@ -103,6 +106,10 @@ assert.match(
 assert.match(style.textContent, /backdrop-filter: blur\(18px\)/);
 assert.match(style.textContent, /var\(--foreground\) 5%, transparent/);
 assert.match(style.textContent, /font-weight: 400/);
+assert.match(
+  style.textContent,
+  /\.bb-thread-hover-card__message[\s\S]*?font-weight: 400/,
+);
 assert.match(style.textContent, /\.bb-thread-hover-card__pr-status/);
 assert.match(style.textContent, /var\(--success\) 9%, transparent/);
 assert.match(style.textContent, /@supports not/);
@@ -140,12 +147,16 @@ assert.ok(
     ?.querySelector('[data-icon="Loading03Icon"]'),
 );
 assert.ok(card.querySelector('[data-icon="OpenAiIcon"]'));
+assert.ok(
+  card
+    .querySelector(".bb-thread-hover-card__header")
+    ?.querySelector('[data-icon="OpenAiIcon"]'),
+);
 assert.ok(card.querySelector('[data-icon="Folder01Icon"]'));
 assert.ok(card.querySelector('[data-icon="LinkSquare01Icon"]'));
 assert.equal(
-  card.querySelector(".bb-thread-hover-card__header")?.textContent,
-  card.querySelector(".bb-thread-hover-card__runtime")?.textContent +
-    card.querySelector(".bb-thread-hover-card__updated")?.textContent,
+  card.querySelector(".bb-thread-hover-card__provider")?.parentElement,
+  card.querySelector(".bb-thread-hover-card__header"),
 );
 assert.equal(card.querySelectorAll(".bb-thread-hover-card__repository").length, 1);
 
@@ -226,8 +237,15 @@ await new Promise((resolve) => setTimeout(resolve, 20));
 
 assert.equal(card.hidden, false);
 assert.match(card.textContent, /Local/);
+assert.match(card.textContent, /Hover cards are ready to use/);
+assert.doesNotMatch(card.textContent, /Create concise hover cards/);
 assert.doesNotMatch(card.textContent, /No Git repository/);
 assert.ok(card.querySelector('[data-icon="LaptopIcon"]'));
+assert.ok(card.querySelector('[data-icon="CheckmarkCircle02Icon"]'));
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__status-icon")?.dataset.tone,
+  "success",
+);
 assert.equal(card.querySelector(".bb-thread-hover-card__runtime"), null);
 assert.deepEqual(requestBodies, [
   { threadId: "thr_1" },

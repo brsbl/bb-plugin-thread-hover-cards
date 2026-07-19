@@ -33,6 +33,7 @@ export const HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__header,
 .bb-thread-hover-card__provider,
+.bb-thread-hover-card__times,
 .bb-thread-hover-card__repository,
 .bb-thread-hover-card__pr,
 .bb-thread-hover-card__meta {
@@ -42,8 +43,7 @@ export const HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__header {
-  justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.625rem;
   color: var(--muted-foreground);
   font-size: 0.6875rem;
   font-weight: 400;
@@ -68,6 +68,10 @@ export const HOVER_CARD_CSS = String.raw`
   color: var(--warning-text, var(--warning));
 }
 
+.bb-thread-hover-card__status-icon[data-tone="success"] {
+  color: var(--success);
+}
+
 .bb-thread-hover-card__runtime,
 .bb-thread-hover-card__updated,
 .bb-thread-hover-card__loading,
@@ -83,16 +87,20 @@ export const HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__updated {
-  margin-left: auto;
+  flex: none;
 }
 
 .bb-thread-hover-card__provider {
+  flex: 1 1 auto;
   gap: 0.375rem;
-  margin-top: 0.625rem;
-  padding-top: 0.5625rem;
-  border-top: 1px solid
-    color-mix(in srgb, var(--foreground) 4%, transparent);
   color: var(--muted-foreground);
+}
+
+.bb-thread-hover-card__times {
+  flex: none;
+  gap: 0.5rem;
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .bb-thread-hover-card__summary,
@@ -120,7 +128,7 @@ export const HOVER_CARD_CSS = String.raw`
   overflow: hidden;
   color: var(--foreground);
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.45;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;

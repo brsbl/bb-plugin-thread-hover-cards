@@ -1,6 +1,7 @@
 import { definePluginApp } from "@bb/plugin-sdk/app";
 import {
   CancelCircleIcon,
+  CheckmarkCircle02Icon,
   ClaudeIcon,
   CursorIcon,
   Folder01Icon,
@@ -41,9 +42,13 @@ type HugeiconDefinition = readonly (
 interface StatusPresentation {
   animated: boolean;
   icon: HugeiconDefinition | null;
-  iconName: "CancelCircleIcon" | "Loading03Icon" | null;
+  iconName:
+    | "CancelCircleIcon"
+    | "CheckmarkCircle02Icon"
+    | "Loading03Icon"
+    | null;
   label: string;
-  tone: "danger" | "muted" | "warning" | "working";
+  tone: "danger" | "muted" | "success" | "warning" | "working";
 }
 
 function element<K extends keyof HTMLElementTagNameMap>(
@@ -122,10 +127,10 @@ function statusPresentation(
     case "idle":
       return {
         animated: false,
-        icon: null,
-        iconName: null,
-        label: "Idle",
-        tone: "muted",
+        icon: CheckmarkCircle02Icon,
+        iconName: "CheckmarkCircle02Icon",
+        label: "Agent finished",
+        tone: "success",
       };
   }
 }
@@ -309,18 +314,40 @@ function renderError(card: HTMLElement): void {
 
 function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
   const header = element("div", "bb-thread-hover-card__header");
+  const provider = element("div", "bb-thread-hover-card__provider");
+  provider.setAttribute(
+    "aria-label",
+    `${summary.provider.displayName}, ${summary.provider.model}`,
+  );
+  provider.title = `${summary.provider.displayName} · ${summary.provider.model}`;
+  provider.append(
+    providerIcon(summary.provider),
+    element(
+      "span",
+      "bb-thread-hover-card__provider-model bb-thread-hover-card__truncate",
+      summary.provider.model,
+    ),
+  );
+  header.append(provider);
+
+  const times = element("div", "bb-thread-hover-card__times");
   if (summary.currentTurnStartedAt !== null) {
     const runtime = element("span", "bb-thread-hover-card__runtime");
     runtime.dataset.turnStartedAt = String(summary.currentTurnStartedAt);
-    header.append(runtime);
+    times.append(runtime);
   }
   const updated = element("span", "bb-thread-hover-card__updated");
   updated.dataset.updatedAt = String(summary.updatedAt);
-  header.append(updated);
+  times.append(updated);
+  header.append(times);
 
   const content: HTMLElement[] = [header];
+  const summaryMessage =
+    summary.status === "idle"
+      ? summary.latestAssistantMessage ?? summary.latestUserMessage
+      : summary.latestUserMessage;
 
-  if (summary.latestUserMessage) {
+  if (summaryMessage) {
     const request = element("section", "bb-thread-hover-card__summary");
     const statusDetails = statusPresentation(summary.status);
     if (statusDetails.icon && statusDetails.iconName) {
@@ -340,27 +367,11 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
       element(
         "p",
         "bb-thread-hover-card__message",
-        summary.latestUserMessage,
+        summaryMessage,
       ),
     );
     content.push(request);
   }
-
-  const provider = element("section", "bb-thread-hover-card__provider");
-  provider.setAttribute(
-    "aria-label",
-    `${summary.provider.displayName}, ${summary.provider.model}`,
-  );
-  provider.title = `${summary.provider.displayName} · ${summary.provider.model}`;
-  provider.append(
-    providerIcon(summary.provider),
-    element(
-      "span",
-      "bb-thread-hover-card__provider-model bb-thread-hover-card__truncate",
-      summary.provider.model,
-    ),
-  );
-  content.push(provider);
 
   const repository = element(
     "section",

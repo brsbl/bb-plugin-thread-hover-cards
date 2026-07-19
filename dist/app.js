@@ -182,6 +182,28 @@ var CancelCircleIcon = [
     }
   ]
 ];
+var CheckmarkCircle02Icon = [
+  [
+    "path",
+    {
+      d: "M22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12Z",
+      stroke: "currentColor",
+      strokeWidth: "1.5",
+      key: "0"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M8 12.5L10.5 15L16 9",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "1"
+    }
+  ]
+];
 var SourceCodeIcon = [
   [
     "path",
@@ -303,6 +325,7 @@ var HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__header,
 .bb-thread-hover-card__provider,
+.bb-thread-hover-card__times,
 .bb-thread-hover-card__repository,
 .bb-thread-hover-card__pr,
 .bb-thread-hover-card__meta {
@@ -312,8 +335,7 @@ var HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__header {
-  justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.625rem;
   color: var(--muted-foreground);
   font-size: 0.6875rem;
   font-weight: 400;
@@ -338,6 +360,10 @@ var HOVER_CARD_CSS = String.raw`
   color: var(--warning-text, var(--warning));
 }
 
+.bb-thread-hover-card__status-icon[data-tone="success"] {
+  color: var(--success);
+}
+
 .bb-thread-hover-card__runtime,
 .bb-thread-hover-card__updated,
 .bb-thread-hover-card__loading,
@@ -353,16 +379,20 @@ var HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__updated {
-  margin-left: auto;
+  flex: none;
 }
 
 .bb-thread-hover-card__provider {
+  flex: 1 1 auto;
   gap: 0.375rem;
-  margin-top: 0.625rem;
-  padding-top: 0.5625rem;
-  border-top: 1px solid
-    color-mix(in srgb, var(--foreground) 4%, transparent);
   color: var(--muted-foreground);
+}
+
+.bb-thread-hover-card__times {
+  flex: none;
+  gap: 0.5rem;
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .bb-thread-hover-card__summary,
@@ -390,7 +420,7 @@ var HOVER_CARD_CSS = String.raw`
   overflow: hidden;
   color: var(--foreground);
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.45;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
@@ -638,10 +668,10 @@ function statusPresentation(status) {
     case "idle":
       return {
         animated: false,
-        icon: null,
-        iconName: null,
-        label: "Idle",
-        tone: "muted"
+        icon: CheckmarkCircle02Icon,
+        iconName: "CheckmarkCircle02Icon",
+        label: "Agent finished",
+        tone: "success"
       };
   }
 }
@@ -777,16 +807,34 @@ function renderError(card) {
 }
 function renderSummary(card, summary) {
   const header = element("div", "bb-thread-hover-card__header");
+  const provider = element("div", "bb-thread-hover-card__provider");
+  provider.setAttribute(
+    "aria-label",
+    `${summary.provider.displayName}, ${summary.provider.model}`
+  );
+  provider.title = `${summary.provider.displayName} \xB7 ${summary.provider.model}`;
+  provider.append(
+    providerIcon(summary.provider),
+    element(
+      "span",
+      "bb-thread-hover-card__provider-model bb-thread-hover-card__truncate",
+      summary.provider.model
+    )
+  );
+  header.append(provider);
+  const times = element("div", "bb-thread-hover-card__times");
   if (summary.currentTurnStartedAt !== null) {
     const runtime2 = element("span", "bb-thread-hover-card__runtime");
     runtime2.dataset.turnStartedAt = String(summary.currentTurnStartedAt);
-    header.append(runtime2);
+    times.append(runtime2);
   }
   const updated = element("span", "bb-thread-hover-card__updated");
   updated.dataset.updatedAt = String(summary.updatedAt);
-  header.append(updated);
+  times.append(updated);
+  header.append(times);
   const content = [header];
-  if (summary.latestUserMessage) {
+  const summaryMessage = summary.status === "idle" ? summary.latestAssistantMessage ?? summary.latestUserMessage : summary.latestUserMessage;
+  if (summaryMessage) {
     const request = element("section", "bb-thread-hover-card__summary");
     const statusDetails = statusPresentation(summary.status);
     if (statusDetails.icon && statusDetails.iconName) {
@@ -806,26 +854,11 @@ function renderSummary(card, summary) {
       element(
         "p",
         "bb-thread-hover-card__message",
-        summary.latestUserMessage
+        summaryMessage
       )
     );
     content.push(request);
   }
-  const provider = element("section", "bb-thread-hover-card__provider");
-  provider.setAttribute(
-    "aria-label",
-    `${summary.provider.displayName}, ${summary.provider.model}`
-  );
-  provider.title = `${summary.provider.displayName} \xB7 ${summary.provider.model}`;
-  provider.append(
-    providerIcon(summary.provider),
-    element(
-      "span",
-      "bb-thread-hover-card__provider-model bb-thread-hover-card__truncate",
-      summary.provider.model
-    )
-  );
-  content.push(provider);
   const repository = element(
     "section",
     "bb-thread-hover-card__repository"

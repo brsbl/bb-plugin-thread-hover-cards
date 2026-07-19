@@ -30,6 +30,7 @@ const pullRequestSummarySchema = z.discriminatedUnion("kind", [
 export const threadSummarySchema = z
   .object({
     currentTurnStartedAt: z.number().nullable(),
+    latestAssistantMessage: z.string().nullable(),
     latestUserMessage: z.string().nullable(),
     pullRequest: pullRequestSummarySchema,
     provider: z
@@ -203,6 +204,7 @@ export default function plugin(bb: BbPluginApi): void {
         pullRequestResult,
         executionOptions,
         providers,
+        threadOutput,
         turnStartedAt,
       ] =
         await Promise.all([
@@ -230,6 +232,9 @@ export default function plugin(bb: BbPluginApi): void {
                 : undefined,
             ),
           ),
+          thread.runtime.displayStatus === "idle"
+            ? safely(bb.sdk.threads.output({ threadId }))
+            : Promise.resolve(null),
           currentTurnStartedAt(
             bb,
             threadId,
@@ -270,6 +275,9 @@ export default function plugin(bb: BbPluginApi): void {
 
       return {
         currentTurnStartedAt: turnStartedAt,
+        latestAssistantMessage: threadOutput?.output
+          ? normalizeMessage(threadOutput.output)
+          : null,
         latestUserMessage: history ? latestVisibleMessage(history) : null,
         pullRequest,
         provider: {

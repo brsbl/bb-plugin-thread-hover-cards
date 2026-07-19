@@ -14552,6 +14552,7 @@ var pullRequestSummarySchema = external_exports.discriminatedUnion("kind", [
 ]);
 var threadSummarySchema = external_exports.object({
   currentTurnStartedAt: external_exports.number().nullable(),
+  latestAssistantMessage: external_exports.string().nullable(),
   latestUserMessage: external_exports.string().nullable(),
   pullRequest: pullRequestSummarySchema,
   provider: external_exports.object({
@@ -14669,6 +14670,7 @@ function plugin(bb) {
         pullRequestResult,
         executionOptions,
         providers,
+        threadOutput,
         turnStartedAt
       ] = await Promise.all([
         safely(bb.sdk.threads.promptHistory({ threadId, limit: "1" })),
@@ -14689,6 +14691,7 @@ function plugin(bb) {
             thread.environmentId ? { environmentId: thread.environmentId } : void 0
           )
         ),
+        thread.runtime.displayStatus === "idle" ? safely(bb.sdk.threads.output({ threadId })) : Promise.resolve(null),
         currentTurnStartedAt(
           bb,
           threadId,
@@ -14718,6 +14721,7 @@ function plugin(bb) {
       }
       return {
         currentTurnStartedAt: turnStartedAt,
+        latestAssistantMessage: threadOutput?.output ? normalizeMessage(threadOutput.output) : null,
         latestUserMessage: history ? latestVisibleMessage(history) : null,
         pullRequest,
         provider: {
