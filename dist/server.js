@@ -14615,6 +14615,7 @@ function isRunningStatus(status) {
   return status === "active" || status === "host-reconnecting" || status === "provisioning" || status === "starting" || status === "stopping";
 }
 var SUMMARY_LOOKUP_TIMEOUT_MS = 2500;
+var TARGET_EVENT_LOOKUP_LIMIT = 8;
 async function currentTurnTiming(bb, threadId, status, signal) {
   if (!isRunningStatus(status) && status !== "idle") {
     return { completedAt: null, startedAt: null };
@@ -14628,13 +14629,50 @@ async function currentTurnTiming(bb, threadId, status, signal) {
     })
   );
   if (!timeline) return { completedAt: null, startedAt: null };
-  for (let index = timeline.rows.length - 1; index >= 0; index -= 1) {
-    const row = timeline.rows[index];
-    if (row?.kind === "turn") {
-      return { completedAt: row.completedAt, startedAt: row.startedAt };
+  let eventCursor = Math.max(
+    0,
+    (timeline.timelinePage.olderCursor?.anchorSeq ?? 1) - 1
+  );
+  let startedAt = null;
+  let turnId = null;
+  for (let attempt = 0; attempt < TARGET_EVENT_LOOKUP_LIMIT; attempt += 1) {
+    const event = await safely(
+      bb.sdk.threads.events.wait({
+        afterSeq: String(eventCursor),
+        signal,
+        threadId,
+        type: "turn/started",
+        waitMs: "0"
+      })
+    );
+    if (!event) break;
+    eventCursor = event.seq;
+    if (event.type === "turn/started" && event.data.parentToolCallId === void 0 && event.scope.kind === "turn") {
+      startedAt = event.createdAt;
+      turnId = event.scope.turnId;
+      break;
     }
   }
-  return { completedAt: null, startedAt: null };
+  if (startedAt === null || turnId === null || status !== "idle") {
+    return { completedAt: null, startedAt };
+  }
+  for (let attempt = 0; attempt < TARGET_EVENT_LOOKUP_LIMIT; attempt += 1) {
+    const event = await safely(
+      bb.sdk.threads.events.wait({
+        afterSeq: String(eventCursor),
+        signal,
+        threadId,
+        type: "turn/completed",
+        waitMs: "0"
+      })
+    );
+    if (!event) break;
+    eventCursor = event.seq;
+    if (event.type === "turn/completed" && event.scope.kind === "turn" && event.scope.turnId === turnId) {
+      return { completedAt: event.createdAt, startedAt };
+    }
+  }
+  return { completedAt: null, startedAt };
 }
 var PULL_REQUEST_SIGNALS = {
   blocked: "Blocked",

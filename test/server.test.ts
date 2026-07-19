@@ -11,17 +11,14 @@ const logMessages: string[] = [];
 let displayStatus: "active" | "idle" = "active";
 let outlineCalls = 0;
 let assistantPreview = "  Finished   the hover card \n polish.  ";
-let timelineRows: Array<{
-  completedAt: number | null;
-  kind: "turn";
-  startedAt: number;
-}> = [
-  {
-    completedAt: null,
-    kind: "turn",
-    startedAt: 100,
-  },
-];
+let turnStartedAt: number | null = 100;
+let turnCompletedAt: number | null = null;
+const eventWaitInputs: Array<{
+  afterSeq?: string;
+  threadId: string;
+  type: string;
+  waitMs: string;
+}> = [];
 
 const fakeBb = {
   log: {
@@ -123,6 +120,48 @@ const fakeBb = {
           serviceTier: "default",
         };
       },
+      events: {
+        async wait(input: {
+          afterSeq?: string;
+          signal?: AbortSignal;
+          threadId: string;
+          type: string;
+          waitMs: string;
+        }) {
+          eventWaitInputs.push({
+            afterSeq: input.afterSeq,
+            threadId: input.threadId,
+            type: input.type,
+            waitMs: input.waitMs,
+          });
+          if (input.type === "turn/started" && turnStartedAt !== null) {
+            return {
+              createdAt: turnStartedAt,
+              data: { providerThreadId: "provider_1" },
+              id: "event_turn_started",
+              scope: { kind: "turn" as const, turnId: "turn_1" },
+              seq: 11,
+              threadId: input.threadId,
+              type: "turn/started" as const,
+            };
+          }
+          if (input.type === "turn/completed" && turnCompletedAt !== null) {
+            return {
+              createdAt: turnCompletedAt,
+              data: {
+                providerThreadId: "provider_1",
+                status: "completed" as const,
+              },
+              id: "event_turn_completed",
+              scope: { kind: "turn" as const, turnId: "turn_1" },
+              seq: 12,
+              threadId: input.threadId,
+              type: "turn/completed" as const,
+            };
+          }
+          return null;
+        },
+      },
       async get() {
         return {
           environmentId: "env_1",
@@ -140,9 +179,9 @@ const fakeBb = {
             usedTokens: 82_000,
           },
           maxSeq: 20,
-          rows: timelineRows,
+          rows: [],
           timelinePage: {
-            olderCursor: null,
+            olderCursor: { anchorId: "prompt_1", anchorSeq: 10 },
           },
         };
       },
@@ -186,34 +225,27 @@ assert.equal("permissionMode" in summary.provider, false);
 assert.equal(summary.permissionMode, "full");
 assert.equal("contextWindowUsage" in summary, false);
 assert.equal(outlineCalls, 1);
+assert.deepEqual(eventWaitInputs, [
+  {
+    afterSeq: "9",
+    threadId: "thr_1",
+    type: "turn/started",
+    waitMs: "0",
+  },
+]);
 
-timelineRows = [
-  {
-    completedAt: 180,
-    kind: "turn",
-    startedAt: 100,
-  },
-  {
-    completedAt: null,
-    kind: "turn",
-    startedAt: 200,
-  },
-];
+turnStartedAt = 200;
 const longTurnSummary = await summaryHandler({ threadId: "thr_1" });
 assert.equal(longTurnSummary.currentTurnStartedAt, 200);
 
-timelineRows = [];
+turnStartedAt = null;
 const missingTurnStartSummary = await summaryHandler({ threadId: "thr_1" });
 assert.equal(missingTurnStartSummary.currentTurnStartedAt, null);
 
 displayStatus = "idle";
-timelineRows = [
-  {
-    completedAt: 220,
-    kind: "turn",
-    startedAt: 100,
-  },
-];
+turnStartedAt = 100;
+turnCompletedAt = 220;
+eventWaitInputs.length = 0;
 const idleSummary = await summaryHandler({ threadId: "thr_1" });
 assert.equal(idleSummary.currentTurnStartedAt, 100);
 assert.equal(idleSummary.currentTurnCompletedAt, 220);
@@ -223,15 +255,24 @@ assert.equal(
 );
 assert.equal(idleSummary.status, "idle");
 assert.equal(outlineCalls, 4);
+assert.deepEqual(eventWaitInputs, [
+  {
+    afterSeq: "9",
+    threadId: "thr_1",
+    type: "turn/started",
+    waitMs: "0",
+  },
+  {
+    afterSeq: "11",
+    threadId: "thr_1",
+    type: "turn/completed",
+    waitMs: "0",
+  },
+]);
 
 assistantPreview = " \n\t ";
-timelineRows = [
-  {
-    completedAt: null,
-    kind: "turn",
-    startedAt: 300,
-  },
-];
+turnStartedAt = 300;
+turnCompletedAt = null;
 const blankIdleSummary = await summaryHandler({ threadId: "thr_1" });
 assert.equal(blankIdleSummary.latestAssistantMessage, null);
 assert.equal(blankIdleSummary.currentTurnStartedAt, 300);
