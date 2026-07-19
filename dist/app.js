@@ -16,6 +16,120 @@ var {
 } = mod;
 
 // icons.ts
+var AlarmClockIcon = [
+  [
+    "path",
+    {
+      d: "M20.5 12.5C20.5 17.1944 16.6944 21 12 21C7.30558 21 3.5 17.1944 3.5 12.5C3.5 7.80558 7.30558 4 12 4C16.6944 4 20.5 7.80558 20.5 12.5Z",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "0"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M5.88 18.7031L3.5 21.0031",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "1"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M18.14 18.668L20.5 20.998",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "2"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M5 3L2 6",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "3"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M22 6L19 3",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "4"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M12 8V12.5L14 14.5",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "5"
+    }
+  ]
+];
+var Appointment02Icon = [
+  [
+    "path",
+    {
+      d: "M16 2V6M8 2V6",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "0"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M13 4H11C7.22876 4 5.34315 4 4.17157 5.17157C3 6.34315 3 8.22876 3 12V14C3 17.7712 3 19.6569 4.17157 20.8284C5.34315 22 7.22876 22 11 22H13C16.7712 22 18.6569 22 19.8284 20.8284C21 19.6569 21 17.7712 21 14V12C21 8.22876 21 6.34315 19.8284 5.17157C18.6569 4 16.7712 4 13 4Z",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "1"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M3 10H21",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "2"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M9 16.5C9 16.5 10.5 17 11 18.5C11 18.5 13.1765 14.5 16 13.5",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "3"
+    }
+  ]
+];
 var LaptopIcon = [
   [
     "path",
@@ -327,6 +441,7 @@ var HOVER_CARD_CSS = String.raw`
 .bb-thread-hover-card__provider,
 .bb-thread-hover-card__times,
 .bb-thread-hover-card__repository,
+.bb-thread-hover-card__branch-row,
 .bb-thread-hover-card__pr,
 .bb-thread-hover-card__meta {
   display: flex;
@@ -339,6 +454,8 @@ var HOVER_CARD_CSS = String.raw`
   color: var(--muted-foreground);
   font-size: 0.6875rem;
   font-weight: 400;
+  font-family:
+    var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
 }
 
 .bb-thread-hover-card__icon {
@@ -374,7 +491,10 @@ var HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__runtime,
 .bb-thread-hover-card__updated {
+  display: inline-flex;
   flex: none;
+  align-items: center;
+  gap: 0.1875rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -393,6 +513,12 @@ var HOVER_CARD_CSS = String.raw`
   gap: 0.375rem;
   margin-left: auto;
   white-space: nowrap;
+}
+
+.bb-thread-hover-card__time-icon {
+  width: 0.75rem;
+  height: 0.75rem;
+  color: color-mix(in srgb, var(--muted-foreground) 74%, transparent);
 }
 
 .bb-thread-hover-card__summary,
@@ -418,9 +544,9 @@ var HOVER_CARD_CSS = String.raw`
   display: -webkit-box;
   min-width: 0;
   overflow: hidden;
-  color: var(--foreground);
+  color: color-mix(in srgb, var(--foreground) 88%, transparent);
   font-size: 0.8125rem;
-  font-weight: 400;
+  font-weight: 350;
   line-height: 1.45;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
@@ -447,7 +573,16 @@ var HOVER_CARD_CSS = String.raw`
   margin-top: 0.375rem;
   overflow: hidden;
   font-size: 0.6875rem;
+  font-family:
+    var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
   white-space: nowrap;
+}
+
+.bb-thread-hover-card__branch-row {
+  margin-top: 0.3125rem;
+  overflow: hidden;
+  font-family:
+    var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
 }
 
 .bb-thread-hover-card__repository > .bb-thread-hover-card__truncate,
@@ -477,15 +612,16 @@ var HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__branch {
-  max-width: 6.5rem;
+  max-width: 100%;
   flex: 0 1 auto;
-  min-width: 2.5rem;
+  min-width: 0;
   overflow: hidden;
   padding: 0.0625rem 0.3rem;
   border-radius: 0.25rem;
   background: color-mix(in srgb, var(--foreground) 5%, transparent);
   color: var(--muted-foreground);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family:
+    var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
   font-size: 0.6875rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -587,6 +723,18 @@ var HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__loading {
   padding: 0.125rem 0;
+}
+
+.bb-thread-hover-card__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 
 @keyframes bb-thread-hover-card-in {
@@ -850,22 +998,43 @@ function refreshTimes(card) {
   const runtime2 = card.querySelector("[data-turn-started-at]");
   if (runtime2) {
     const timestamp = Number(runtime2.dataset.turnStartedAt);
-    runtime2.textContent = `Run ${runTime(timestamp)}`;
+    const value = runTime(timestamp);
+    runtime2.querySelector("[data-time-value]").textContent = value;
+    runtime2.title = `Run time ${value}`;
   }
   const updated = card.querySelector("[data-updated-at]");
   if (updated) {
     const timestamp = Number(updated.dataset.updatedAt);
-    updated.textContent = `Updated ${relativeTime(timestamp)}`;
+    const value = relativeTime(timestamp);
+    updated.querySelector("[data-time-value]").textContent = value;
+    updated.title = `Updated ${value}`;
   }
+}
+function formatModelLabel(value, providerId) {
+  const formatted = value.split("-").map((part) => {
+    if (part.toLowerCase() === "gpt") return "GPT";
+    if (/^\d+(\.\d+)*$/.test(part)) return part;
+    if (/^[a-z]+$/i.test(part)) {
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    }
+    return part;
+  }).join("-");
+  if (providerId === "codex") return formatted.replace(/^GPT-/i, "");
+  if (providerId === "claude-code") {
+    return formatted.replace(/^Claude\s+/i, "");
+  }
+  return formatted;
 }
 function nextInlinePattern(source) {
   const patterns = [
     ["image", /!\[([^\]]*)\]\([^)]+\)/],
     ["link", /\[([^\]]+)\]\([^)]+\)/],
     ["code", /`([^`\n]+)`/],
-    ["strong", /(?:\*\*|__)(.+?)(?:\*\*|__)/],
+    ["strong", /(?<!\\)\*\*(\S(?:[^\n]*?\S)?)(?<!\\)\*\*/],
+    ["strong", /(?<![\\\w])__(\S(?:[^\n]*?\S)?)(?<!\\)__(?!\w)/],
     ["strike", /~~(.+?)~~/],
-    ["emphasis", /(?:\*|_)([^*_\n]+)(?:\*|_)/]
+    ["emphasis", /(?<!\\)\*(?!\*)(\S(?:[^*\n]*?\S)?)(?<!\\)\*(?!\*)/],
+    ["emphasis", /(?<![\\\w])_(?!_)(\S(?:[^_\n]*?\S)?)(?<!\\)_(?![\w_])/]
   ];
   let next = null;
   for (const [type, pattern] of patterns) {
@@ -1006,17 +1175,22 @@ function renderError(card) {
 function renderSummary(card, summary) {
   const header = element("div", "bb-thread-hover-card__header");
   const provider = element("div", "bb-thread-hover-card__provider");
-  provider.setAttribute(
-    "aria-label",
-    `${summary.provider.displayName}, ${summary.provider.model}`
+  const modelLabel = formatModelLabel(
+    summary.provider.model,
+    summary.provider.id
   );
-  provider.title = `${summary.provider.displayName} \xB7 ${summary.provider.model}`;
+  provider.title = `${summary.provider.displayName} \xB7 ${modelLabel}`;
   provider.append(
     providerIcon(summary.provider),
     element(
       "span",
+      "bb-thread-hover-card__sr-only",
+      `${summary.provider.displayName}, `
+    ),
+    element(
+      "span",
       "bb-thread-hover-card__provider-model bb-thread-hover-card__truncate",
-      summary.provider.model
+      modelLabel
     )
   );
   header.append(provider);
@@ -1024,10 +1198,32 @@ function renderSummary(card, summary) {
   if (summary.currentTurnStartedAt !== null) {
     const runtime2 = element("span", "bb-thread-hover-card__runtime");
     runtime2.dataset.turnStartedAt = String(summary.currentTurnStartedAt);
+    const runtimeValue = element("span", "bb-thread-hover-card__time-value");
+    runtimeValue.dataset.timeValue = "";
+    runtime2.append(
+      icon(
+        AlarmClockIcon,
+        "AlarmClockIcon",
+        "bb-thread-hover-card__icon bb-thread-hover-card__time-icon"
+      ),
+      element("span", "bb-thread-hover-card__sr-only", "Run time "),
+      runtimeValue
+    );
     times.append(runtime2);
   }
   const updated = element("span", "bb-thread-hover-card__updated");
   updated.dataset.updatedAt = String(summary.updatedAt);
+  const updatedValue = element("span", "bb-thread-hover-card__time-value");
+  updatedValue.dataset.timeValue = "";
+  updated.append(
+    icon(
+      Appointment02Icon,
+      "Appointment02Icon",
+      "bb-thread-hover-card__icon bb-thread-hover-card__time-icon"
+    ),
+    element("span", "bb-thread-hover-card__sr-only", "Updated "),
+    updatedValue
+  );
   times.append(updated);
   header.append(times);
   const content = [header];
@@ -1074,66 +1270,53 @@ function renderSummary(card, summary) {
       ),
       element("span", "bb-thread-hover-card__truncate", summary.repository.name)
     );
-    if (summary.repository.branch) {
-      repository.append(
-        element(
-          "span",
-          "bb-thread-hover-card__branch",
-          summary.repository.branch
-        )
-      );
-    }
-    if (summary.pullRequest.kind !== "absent") {
+    if (summary.pullRequest.kind === "available") {
       const pullRequestLine = element("span", "bb-thread-hover-card__pr");
       pullRequestLine.dataset.kind = summary.pullRequest.kind;
-      if (summary.pullRequest.kind === "available") {
-        const pullRequestLink = element(
-          "a",
-          "bb-thread-hover-card__pr-link"
-        );
-        pullRequestLink.href = summary.pullRequest.url;
-        pullRequestLink.target = "_blank";
-        pullRequestLink.rel = "noopener noreferrer";
-        pullRequestLink.setAttribute(
-          "aria-label",
-          `Pull request #${summary.pullRequest.number}: ${summary.pullRequest.title}. ${summary.pullRequest.signal}. Opens in a new tab.`
-        );
-        pullRequestLink.title = summary.pullRequest.title;
-        pullRequestLink.append(
-          element(
-            "span",
-            "bb-thread-hover-card__truncate",
-            `#${summary.pullRequest.number}`
-          )
-        );
-        const pullRequestStatus = element(
+      const pullRequestLink = element("a", "bb-thread-hover-card__pr-link");
+      pullRequestLink.href = summary.pullRequest.url;
+      pullRequestLink.target = "_blank";
+      pullRequestLink.rel = "noopener noreferrer";
+      pullRequestLink.setAttribute(
+        "aria-label",
+        `Pull request #${summary.pullRequest.number}: ${summary.pullRequest.title}. ${summary.pullRequest.signal}. Opens in a new tab.`
+      );
+      pullRequestLink.title = summary.pullRequest.title;
+      pullRequestLink.append(
+        icon(
+          LinkSquare01Icon,
+          "LinkSquare01Icon",
+          "bb-thread-hover-card__icon bb-thread-hover-card__link-icon"
+        ),
+        element(
           "span",
-          "bb-thread-hover-card__pr-status",
-          summary.pullRequest.signal
-        );
-        pullRequestStatus.dataset.tone = pullRequestTone(summary.pullRequest);
-        pullRequestLink.append(
-          pullRequestStatus,
-          icon(
-            LinkSquare01Icon,
-            "LinkSquare01Icon",
-            "bb-thread-hover-card__icon bb-thread-hover-card__link-icon"
-          )
-        );
-        pullRequestLine.append(
-          element("span", "bb-thread-hover-card__meta-label", "PR"),
-          pullRequestLink
-        );
-      } else {
-        pullRequestLine.append(
-          element("span", "bb-thread-hover-card__meta-label", "PR"),
-          element("span", "", "PR unavailable")
-        );
-      }
+          "bb-thread-hover-card__truncate",
+          `#${summary.pullRequest.number}`
+        )
+      );
+      const pullRequestStatus = element(
+        "span",
+        "bb-thread-hover-card__pr-status",
+        summary.pullRequest.signal
+      );
+      pullRequestStatus.dataset.tone = pullRequestTone(summary.pullRequest);
+      pullRequestLink.append(pullRequestStatus);
+      pullRequestLine.append(pullRequestLink);
       repository.append(pullRequestLine);
     }
   }
   content.push(repository);
+  if (summary.repository.isGitRepository && summary.repository.branch) {
+    const branch = element("section", "bb-thread-hover-card__branch-row");
+    branch.append(
+      element(
+        "span",
+        "bb-thread-hover-card__branch",
+        summary.repository.branch
+      )
+    );
+    content.push(branch);
+  }
   card.replaceChildren(...content);
   refreshTimes(card);
 }
@@ -1217,7 +1400,14 @@ function installHoverCards() {
       if (disposed || generation !== requestGeneration || activeTrigger !== trigger) {
         return;
       }
+      const focusWasInsideCard = document.activeElement instanceof Node && hoverCard.contains(document.activeElement);
       renderSummary(hoverCard, summary);
+      if (focusWasInsideCard) {
+        const replacementPullRequestLink = hoverCard.querySelector(
+          ".bb-thread-hover-card__pr-link"
+        );
+        (replacementPullRequestLink ?? activeTrigger)?.focus();
+      }
       requestAnimationFrame(positionCard);
     }).catch(() => {
       if (!cached && !disposed && generation === requestGeneration && activeTrigger === trigger) {

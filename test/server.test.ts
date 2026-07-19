@@ -10,6 +10,25 @@ let summaryHandler: SummaryHandler | undefined;
 const logMessages: string[] = [];
 let displayStatus: "active" | "idle" = "active";
 let outputCalls = 0;
+let assistantOutput = "  Finished   the hover card \n polish.  ";
+let timelineAnchorSeq: number | null = 10;
+let timelineMaxSeq = 20;
+let threadEvents = [
+  {
+    createdAt: 100,
+    data: { providerThreadId: "provider_1" },
+    id: "event_1",
+    scope: { kind: "turn" as const, turnId: "turn_1" },
+    seq: 10,
+    threadId: "thr_1",
+    type: "turn/started" as const,
+  },
+];
+const eventListInputs: Array<{
+  afterSeq: string;
+  limit: string;
+  threadId: string;
+}> = [];
 
 const fakeBb = {
   log: {
@@ -62,24 +81,33 @@ const fakeBb = {
           },
         ];
       },
+      async models() {
+        return {
+          modelLoadError: null,
+          models: [
+            {
+              id: "gpt-5.6-sol",
+              model: "gpt-5.6-sol",
+              displayName: "GPT-5.6-Sol",
+            },
+          ],
+          providers: [],
+          selectedOnlyModels: [],
+        };
+      },
     },
     threads: {
       async defaultExecutionOptions() {
         return { model: "gpt-5.6-sol" };
       },
       events: {
-        async list() {
-          return [
-            {
-              createdAt: 100,
-              data: { providerThreadId: "provider_1" },
-              id: "event_1",
-              scope: { kind: "turn", turnId: "turn_1" },
-              seq: 10,
-              threadId: "thr_1",
-              type: "turn/started",
-            },
-          ];
+        async list(input: {
+          afterSeq: string;
+          limit: string;
+          threadId: string;
+        }) {
+          eventListInputs.push(input);
+          return threadEvents;
         },
       },
       async get() {
@@ -93,7 +121,7 @@ const fakeBb = {
       },
       async output() {
         outputCalls += 1;
-        return { output: "  Finished   the hover card \n polish.  " };
+        return { output: assistantOutput };
       },
       async promptHistory() {
         return [
@@ -115,7 +143,15 @@ const fakeBb = {
         ];
       },
       async timeline() {
-        return { maxSeq: 20 };
+        return {
+          maxSeq: timelineMaxSeq,
+          timelinePage: {
+            olderCursor:
+              timelineAnchorSeq === null
+                ? null
+                : { anchorId: "prompt_1", anchorSeq: timelineAnchorSeq },
+          },
+        };
       },
     },
   },
@@ -141,7 +177,7 @@ assert.deepEqual(summary, {
     displayName: "Codex",
     id: "codex",
     logoUrl: null,
-    model: "gpt-5.6-sol",
+    model: "GPT-5.6-Sol",
   },
   repository: {
     branch: "feature/hover-cards",
@@ -152,6 +188,57 @@ assert.deepEqual(summary, {
   updatedAt: 123,
 });
 assert.equal(outputCalls, 0);
+assert.deepEqual(eventListInputs, [
+  { afterSeq: "9", limit: "256", threadId: "thr_1" },
+]);
+
+timelineAnchorSeq = 9_000;
+timelineMaxSeq = 10_000;
+threadEvents = [
+  {
+    createdAt: 200,
+    data: { providerThreadId: "provider_1" },
+    id: "event_long_turn",
+    scope: { kind: "turn" as const, turnId: "turn_2" },
+    seq: 9_000,
+    threadId: "thr_1",
+    type: "turn/started" as const,
+  },
+];
+eventListInputs.length = 0;
+const longTurnSummary = await summaryHandler({ threadId: "thr_1" });
+assert.equal(longTurnSummary.currentTurnStartedAt, 200);
+assert.deepEqual(eventListInputs, [
+  { afterSeq: "8999", limit: "256", threadId: "thr_1" },
+]);
+
+timelineAnchorSeq = null;
+timelineMaxSeq = 12_000;
+threadEvents = [
+  {
+    createdAt: 300,
+    data: { providerThreadId: "provider_1" },
+    id: "event_first_long_turn",
+    scope: { kind: "turn" as const, turnId: "turn_3" },
+    seq: 4,
+    threadId: "thr_1",
+    type: "turn/started" as const,
+  },
+];
+eventListInputs.length = 0;
+const firstTurnSummary = await summaryHandler({ threadId: "thr_1" });
+assert.equal(firstTurnSummary.currentTurnStartedAt, 300);
+assert.deepEqual(eventListInputs, [
+  { afterSeq: "0", limit: "256", threadId: "thr_1" },
+]);
+
+threadEvents = [];
+eventListInputs.length = 0;
+const missingTurnStartSummary = await summaryHandler({ threadId: "thr_1" });
+assert.equal(missingTurnStartSummary.currentTurnStartedAt, null);
+assert.deepEqual(eventListInputs, [
+  { afterSeq: "0", limit: "256", threadId: "thr_1" },
+]);
 
 displayStatus = "idle";
 const idleSummary = await summaryHandler({ threadId: "thr_1" });
@@ -162,6 +249,11 @@ assert.equal(
 );
 assert.equal(idleSummary.status, "idle");
 assert.equal(outputCalls, 1);
+
+assistantOutput = " \n\t ";
+const blankIdleSummary = await summaryHandler({ threadId: "thr_1" });
+assert.equal(blankIdleSummary.latestAssistantMessage, null);
+assert.equal(outputCalls, 2);
 assert.deepEqual(logMessages, ["Thread hover cards loaded."]);
 assert.deepEqual(
   markdownPreview(

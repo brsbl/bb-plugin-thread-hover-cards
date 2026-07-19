@@ -1,5 +1,7 @@
 import { definePluginApp } from "@bb/plugin-sdk/app";
 import {
+  AlarmClockIcon,
+  Appointment02Icon,
   CancelCircleIcon,
   CheckmarkCircle02Icon,
   ClaudeIcon,
@@ -212,14 +214,38 @@ function refreshTimes(card: HTMLElement): void {
   const runtime = card.querySelector<HTMLElement>("[data-turn-started-at]");
   if (runtime) {
     const timestamp = Number(runtime.dataset.turnStartedAt);
-    runtime.textContent = `Run ${runTime(timestamp)}`;
+    const value = runTime(timestamp);
+    runtime.querySelector<HTMLElement>("[data-time-value]")!.textContent = value;
+    runtime.title = `Run time ${value}`;
   }
 
   const updated = card.querySelector<HTMLElement>("[data-updated-at]");
   if (updated) {
     const timestamp = Number(updated.dataset.updatedAt);
-    updated.textContent = `Updated ${relativeTime(timestamp)}`;
+    const value = relativeTime(timestamp);
+    updated.querySelector<HTMLElement>("[data-time-value]")!.textContent = value;
+    updated.title = `Updated ${value}`;
   }
+}
+
+function formatModelLabel(value: string, providerId: string): string {
+  const formatted = value
+    .split("-")
+    .map((part) => {
+      if (part.toLowerCase() === "gpt") return "GPT";
+      if (/^\d+(\.\d+)*$/.test(part)) return part;
+      if (/^[a-z]+$/i.test(part)) {
+        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+      }
+      return part;
+    })
+    .join("-");
+
+  if (providerId === "codex") return formatted.replace(/^GPT-/i, "");
+  if (providerId === "claude-code") {
+    return formatted.replace(/^Claude\s+/i, "");
+  }
+  return formatted;
 }
 
 interface InlinePattern {
@@ -232,9 +258,11 @@ function nextInlinePattern(source: string): InlinePattern | null {
     ["image", /!\[([^\]]*)\]\([^)]+\)/],
     ["link", /\[([^\]]+)\]\([^)]+\)/],
     ["code", /`([^`\n]+)`/],
-    ["strong", /(?:\*\*|__)(.+?)(?:\*\*|__)/],
+    ["strong", /(?<!\\)\*\*(\S(?:[^\n]*?\S)?)(?<!\\)\*\*/],
+    ["strong", /(?<![\\\w])__(\S(?:[^\n]*?\S)?)(?<!\\)__(?!\w)/],
     ["strike", /~~(.+?)~~/],
-    ["emphasis", /(?:\*|_)([^*_\n]+)(?:\*|_)/],
+    ["emphasis", /(?<!\\)\*(?!\*)(\S(?:[^*\n]*?\S)?)(?<!\\)\*(?!\*)/],
+    ["emphasis", /(?<![\\\w])_(?!_)(\S(?:[^_\n]*?\S)?)(?<!\\)_(?![\w_])/],
   ];
   let next: InlinePattern | null = null;
   for (const [type, pattern] of patterns) {
@@ -411,17 +439,22 @@ function renderError(card: HTMLElement): void {
 function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
   const header = element("div", "bb-thread-hover-card__header");
   const provider = element("div", "bb-thread-hover-card__provider");
-  provider.setAttribute(
-    "aria-label",
-    `${summary.provider.displayName}, ${summary.provider.model}`,
+  const modelLabel = formatModelLabel(
+    summary.provider.model,
+    summary.provider.id,
   );
-  provider.title = `${summary.provider.displayName} · ${summary.provider.model}`;
+  provider.title = `${summary.provider.displayName} · ${modelLabel}`;
   provider.append(
     providerIcon(summary.provider),
     element(
       "span",
+      "bb-thread-hover-card__sr-only",
+      `${summary.provider.displayName}, `,
+    ),
+    element(
+      "span",
       "bb-thread-hover-card__provider-model bb-thread-hover-card__truncate",
-      summary.provider.model,
+      modelLabel,
     ),
   );
   header.append(provider);
@@ -430,10 +463,32 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
   if (summary.currentTurnStartedAt !== null) {
     const runtime = element("span", "bb-thread-hover-card__runtime");
     runtime.dataset.turnStartedAt = String(summary.currentTurnStartedAt);
+    const runtimeValue = element("span", "bb-thread-hover-card__time-value");
+    runtimeValue.dataset.timeValue = "";
+    runtime.append(
+      icon(
+        AlarmClockIcon,
+        "AlarmClockIcon",
+        "bb-thread-hover-card__icon bb-thread-hover-card__time-icon",
+      ),
+      element("span", "bb-thread-hover-card__sr-only", "Run time "),
+      runtimeValue,
+    );
     times.append(runtime);
   }
   const updated = element("span", "bb-thread-hover-card__updated");
   updated.dataset.updatedAt = String(summary.updatedAt);
+  const updatedValue = element("span", "bb-thread-hover-card__time-value");
+  updatedValue.dataset.timeValue = "";
+  updated.append(
+    icon(
+      Appointment02Icon,
+      "Appointment02Icon",
+      "bb-thread-hover-card__icon bb-thread-hover-card__time-icon",
+    ),
+    element("span", "bb-thread-hover-card__sr-only", "Updated "),
+    updatedValue,
+  );
   times.append(updated);
   header.append(times);
 
@@ -486,67 +541,53 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
       ),
       element("span", "bb-thread-hover-card__truncate", summary.repository.name),
     );
-    if (summary.repository.branch) {
-      repository.append(
-        element(
-          "span",
-          "bb-thread-hover-card__branch",
-          summary.repository.branch,
-        ),
-      );
-    }
-
-    if (summary.pullRequest.kind !== "absent") {
+    if (summary.pullRequest.kind === "available") {
       const pullRequestLine = element("span", "bb-thread-hover-card__pr");
       pullRequestLine.dataset.kind = summary.pullRequest.kind;
-      if (summary.pullRequest.kind === "available") {
-        const pullRequestLink = element(
-          "a",
-          "bb-thread-hover-card__pr-link",
-        );
-        pullRequestLink.href = summary.pullRequest.url;
-        pullRequestLink.target = "_blank";
-        pullRequestLink.rel = "noopener noreferrer";
-        pullRequestLink.setAttribute(
-          "aria-label",
-          `Pull request #${summary.pullRequest.number}: ${summary.pullRequest.title}. ${summary.pullRequest.signal}. Opens in a new tab.`,
-        );
-        pullRequestLink.title = summary.pullRequest.title;
-        pullRequestLink.append(
-          element(
-            "span",
-            "bb-thread-hover-card__truncate",
-            `#${summary.pullRequest.number}`,
-          ),
-        );
-        const pullRequestStatus = element(
+      const pullRequestLink = element("a", "bb-thread-hover-card__pr-link");
+      pullRequestLink.href = summary.pullRequest.url;
+      pullRequestLink.target = "_blank";
+      pullRequestLink.rel = "noopener noreferrer";
+      pullRequestLink.setAttribute(
+        "aria-label",
+        `Pull request #${summary.pullRequest.number}: ${summary.pullRequest.title}. ${summary.pullRequest.signal}. Opens in a new tab.`,
+      );
+      pullRequestLink.title = summary.pullRequest.title;
+      pullRequestLink.append(
+        icon(
+          LinkSquare01Icon,
+          "LinkSquare01Icon",
+          "bb-thread-hover-card__icon bb-thread-hover-card__link-icon",
+        ),
+        element(
           "span",
-          "bb-thread-hover-card__pr-status",
-          summary.pullRequest.signal,
-        );
-        pullRequestStatus.dataset.tone = pullRequestTone(summary.pullRequest);
-        pullRequestLink.append(
-          pullRequestStatus,
-          icon(
-            LinkSquare01Icon,
-            "LinkSquare01Icon",
-            "bb-thread-hover-card__icon bb-thread-hover-card__link-icon",
-          ),
-        );
-        pullRequestLine.append(
-          element("span", "bb-thread-hover-card__meta-label", "PR"),
-          pullRequestLink,
-        );
-      } else {
-        pullRequestLine.append(
-          element("span", "bb-thread-hover-card__meta-label", "PR"),
-          element("span", "", "PR unavailable"),
-        );
-      }
+          "bb-thread-hover-card__truncate",
+          `#${summary.pullRequest.number}`,
+        ),
+      );
+      const pullRequestStatus = element(
+        "span",
+        "bb-thread-hover-card__pr-status",
+        summary.pullRequest.signal,
+      );
+      pullRequestStatus.dataset.tone = pullRequestTone(summary.pullRequest);
+      pullRequestLink.append(pullRequestStatus);
+      pullRequestLine.append(pullRequestLink);
       repository.append(pullRequestLine);
     }
   }
   content.push(repository);
+  if (summary.repository.isGitRepository && summary.repository.branch) {
+    const branch = element("section", "bb-thread-hover-card__branch-row");
+    branch.append(
+      element(
+        "span",
+        "bb-thread-hover-card__branch",
+        summary.repository.branch,
+      ),
+    );
+    content.push(branch);
+  }
 
   card.replaceChildren(...content);
   refreshTimes(card);
@@ -650,7 +691,17 @@ function installHoverCards(): HoverCardController {
         ) {
           return;
         }
+        const focusWasInsideCard =
+          document.activeElement instanceof Node &&
+          hoverCard.contains(document.activeElement);
         renderSummary(hoverCard, summary);
+        if (focusWasInsideCard) {
+          const replacementPullRequestLink =
+            hoverCard.querySelector<HTMLAnchorElement>(
+              ".bb-thread-hover-card__pr-link",
+            );
+          (replacementPullRequestLink ?? activeTrigger)?.focus();
+        }
         requestAnimationFrame(positionCard);
       })
       .catch(() => {

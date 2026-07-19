@@ -35,6 +35,7 @@ export const HOVER_CARD_CSS = String.raw`
 .bb-thread-hover-card__provider,
 .bb-thread-hover-card__times,
 .bb-thread-hover-card__repository,
+.bb-thread-hover-card__branch-row,
 .bb-thread-hover-card__pr,
 .bb-thread-hover-card__meta {
   display: flex;
@@ -47,6 +48,8 @@ export const HOVER_CARD_CSS = String.raw`
   color: var(--muted-foreground);
   font-size: 0.6875rem;
   font-weight: 400;
+  font-family:
+    var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
 }
 
 .bb-thread-hover-card__icon {
@@ -82,7 +85,10 @@ export const HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__runtime,
 .bb-thread-hover-card__updated {
+  display: inline-flex;
   flex: none;
+  align-items: center;
+  gap: 0.1875rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -101,6 +107,12 @@ export const HOVER_CARD_CSS = String.raw`
   gap: 0.375rem;
   margin-left: auto;
   white-space: nowrap;
+}
+
+.bb-thread-hover-card__time-icon {
+  width: 0.75rem;
+  height: 0.75rem;
+  color: color-mix(in srgb, var(--muted-foreground) 74%, transparent);
 }
 
 .bb-thread-hover-card__summary,
@@ -126,9 +138,9 @@ export const HOVER_CARD_CSS = String.raw`
   display: -webkit-box;
   min-width: 0;
   overflow: hidden;
-  color: var(--foreground);
+  color: color-mix(in srgb, var(--foreground) 88%, transparent);
   font-size: 0.8125rem;
-  font-weight: 400;
+  font-weight: 350;
   line-height: 1.45;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
@@ -155,7 +167,16 @@ export const HOVER_CARD_CSS = String.raw`
   margin-top: 0.375rem;
   overflow: hidden;
   font-size: 0.6875rem;
+  font-family:
+    var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
   white-space: nowrap;
+}
+
+.bb-thread-hover-card__branch-row {
+  margin-top: 0.3125rem;
+  overflow: hidden;
+  font-family:
+    var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
 }
 
 .bb-thread-hover-card__repository > .bb-thread-hover-card__truncate,
@@ -185,15 +206,16 @@ export const HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__branch {
-  max-width: 6.5rem;
+  max-width: 100%;
   flex: 0 1 auto;
-  min-width: 2.5rem;
+  min-width: 0;
   overflow: hidden;
   padding: 0.0625rem 0.3rem;
   border-radius: 0.25rem;
   background: color-mix(in srgb, var(--foreground) 5%, transparent);
   color: var(--muted-foreground);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family:
+    var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
   font-size: 0.6875rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -295,6 +317,18 @@ export const HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__loading {
   padding: 0.125rem 0;
+}
+
+.bb-thread-hover-card__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 
 @keyframes bb-thread-hover-card-in {

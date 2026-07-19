@@ -32,23 +32,30 @@ Object.assign(globalThis, {
 });
 
 const requestBodies = [];
+let delayedRefresh = null;
+let delayNextRefreshFor = null;
 globalThis.fetch = async (_url, init) => {
   const request = JSON.parse(init.body);
   requestBodies.push(request);
   const isLocal = request.threadId === "thr_local";
   const hasNoPullRequest = request.threadId === "thr_no_pr";
-  return new Response(
+  const pullRequestUnavailable = request.threadId === "thr_pr_unavailable";
+  const response = new Response(
     JSON.stringify({
       ok: true,
       result: {
         currentTurnStartedAt: isLocal ? null : Date.now() - 65_000,
         latestAssistantMessage: isLocal
-          ? "**Done**—hover cards are ready to use with `Cmd+R`.\n\n## Canary\nIgnore this secondary section.\n\n| Work | PR | Status |\n| --- | --- | --- |\n| Hover cards | #42 | Ready |"
+          ? "**Done**—hover cards are *ready* for foo_bar_baz, \\_literal\\_, and __tests__ with `Cmd+R`.\n\n## Canary\nIgnore this secondary section.\n\n| Work | PR | Status |\n| --- | --- | --- |\n| Hover cards | #42 | Ready |"
           : null,
-        latestUserMessage: "**Create** concise hover cards",
-        pullRequest: isLocal || hasNoPullRequest
-          ? { kind: "absent" }
-          : {
+        latestUserMessage:
+          "**Create** concise hover cards for foo_bar_baz and \\_literal\\_",
+        pullRequest:
+          isLocal || hasNoPullRequest
+            ? { kind: "absent" }
+            : pullRequestUnavailable
+              ? { kind: "unavailable" }
+              : {
               kind: "available",
               number: 42,
               signal: "Checks passing",
@@ -60,7 +67,7 @@ globalThis.fetch = async (_url, init) => {
           displayName: "Codex",
           id: "codex",
           logoUrl: null,
-          model: "gpt-5.6-sol",
+          model: "GPT-5.6-Sol",
         },
         repository: isLocal
           ? {
@@ -79,6 +86,13 @@ globalThis.fetch = async (_url, init) => {
     }),
     { headers: { "content-type": "application/json" }, status: 200 },
   );
+  if (delayNextRefreshFor === request.threadId) {
+    delayNextRefreshFor = null;
+    return new Promise((resolve) => {
+      delayedRefresh = () => resolve(response);
+    });
+  }
+  return response;
 };
 
 globalThis.__bbPluginRuntime = {
@@ -109,8 +123,18 @@ assert.match(style.textContent, /var\(--foreground\) 4%, transparent/);
 assert.match(style.textContent, /font-weight: 400/);
 assert.match(
   style.textContent,
-  /\.bb-thread-hover-card__message[\s\S]*?font-weight: 400/,
+  /\.bb-thread-hover-card__message[\s\S]*?font-weight: 350/,
 );
+assert.match(
+  style.textContent,
+  /\.bb-thread-hover-card__header[\s\S]*?var\(--font-mono/,
+);
+assert.match(
+  style.textContent,
+  /\.bb-thread-hover-card__repository[\s\S]*?var\(--font-mono/,
+);
+assert.match(style.textContent, /\.bb-thread-hover-card__branch-row/);
+assert.match(style.textContent, /max-width: 100%/);
 assert.match(style.textContent, /\.bb-thread-hover-card__pr-status/);
 assert.match(style.textContent, /var\(--success\) 9%, transparent/);
 assert.match(style.textContent, /@supports not/);
@@ -134,11 +158,41 @@ assert.equal(card.hasAttribute("data-bb-portaled-overlay"), true);
 assert.equal(trigger.getAttribute("aria-describedby"), "bb-thread-hover-card");
 assert.deepEqual(requestBodies, [{ threadId: "thr_1" }]);
 assert.doesNotMatch(card.textContent, /Agent working/);
-assert.match(card.textContent, /Run 1m/);
-assert.match(card.textContent, /Updated now/);
-assert.match(card.textContent, /Create concise hover cards/);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__runtime [data-time-value]")
+    ?.textContent,
+  "1m",
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__updated [data-time-value]")
+    ?.textContent,
+  "now",
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__runtime .bb-thread-hover-card__sr-only")
+    ?.textContent,
+  "Run time ",
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__updated .bb-thread-hover-card__sr-only")
+    ?.textContent,
+  "Updated ",
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__provider .bb-thread-hover-card__sr-only")
+    ?.textContent,
+  "Codex, ",
+);
+assert.ok(card.querySelector('[data-icon="AlarmClockIcon"]'));
+assert.ok(card.querySelector('[data-icon="Appointment02Icon"]'));
+assert.match(
+  card.textContent,
+  /Create concise hover cards for foo_bar_baz and _literal_/,
+);
 assert.equal(card.querySelector(".bb-thread-hover-card__inline-strong"), null);
-assert.match(card.textContent, /gpt-5\.6-sol/);
+assert.equal(card.querySelector(".bb-thread-hover-card__inline-emphasis"), null);
+assert.match(card.textContent, /5\.6-Sol/);
+assert.doesNotMatch(card.textContent, /gpt-5\.6-sol/);
 assert.match(card.textContent, /acme\/bb/);
 assert.match(card.textContent, /#42Checks passing/);
 assert.doesNotMatch(card.textContent, /Latest request/i);
@@ -164,6 +218,22 @@ assert.equal(card.querySelectorAll(".bb-thread-hover-card__repository").length, 
 
 const pullRequestLink = card.querySelector(".bb-thread-hover-card__pr-link");
 assert.ok(pullRequestLink);
+assert.equal(
+  pullRequestLink.firstElementChild?.getAttribute("data-icon"),
+  "LinkSquare01Icon",
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__repository")?.nextElementSibling,
+  card.querySelector(".bb-thread-hover-card__branch-row"),
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__branch")?.parentElement,
+  card.querySelector(".bb-thread-hover-card__branch-row"),
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__pr .bb-thread-hover-card__meta-label"),
+  null,
+);
 assert.equal(pullRequestLink.href, "https://github.com/acme/bb/pull/42");
 assert.equal(pullRequestLink.target, "_blank");
 assert.equal(
@@ -212,6 +282,39 @@ assert.equal(window.document.activeElement, trigger);
 await new Promise((resolve) => setTimeout(resolve, 20));
 assert.equal(card.hidden, true);
 
+const realDateNow = Date.now;
+Date.now = () => realDateNow() + 11_000;
+delayNextRefreshFor = "thr_1";
+trigger.blur();
+trigger.focus();
+await new Promise((resolve) => setTimeout(resolve, 20));
+
+assert.equal(card.hidden, false);
+const stalePullRequestLink = card.querySelector(
+  ".bb-thread-hover-card__pr-link",
+);
+assert.ok(stalePullRequestLink);
+trigger.dispatchEvent(
+  new window.KeyboardEvent("keydown", { bubbles: true, key: "Tab" }),
+);
+assert.equal(window.document.activeElement, stalePullRequestLink);
+assert.ok(delayedRefresh);
+delayedRefresh();
+await new Promise((resolve) => setTimeout(resolve, 20));
+
+const refreshedPullRequestLink = card.querySelector(
+  ".bb-thread-hover-card__pr-link",
+);
+assert.ok(refreshedPullRequestLink);
+assert.notEqual(refreshedPullRequestLink, stalePullRequestLink);
+assert.equal(window.document.activeElement, refreshedPullRequestLink);
+Date.now = realDateNow;
+delayedRefresh = null;
+refreshedPullRequestLink.dispatchEvent(
+  new window.KeyboardEvent("keydown", { bubbles: true, key: "Escape" }),
+);
+assert.equal(card.hidden, true);
+
 trigger.dataset.sidebarThreadId = "thr_2";
 const quickPointerOver = new window.Event("pointerover", { bubbles: true });
 Object.defineProperties(quickPointerOver, {
@@ -230,7 +333,10 @@ trigger.dispatchEvent(quickPointerOut);
 await new Promise((resolve) => setTimeout(resolve, 280));
 
 assert.equal(card.hidden, true);
-assert.deepEqual(requestBodies, [{ threadId: "thr_1" }]);
+assert.deepEqual(requestBodies, [
+  { threadId: "thr_1" },
+  { threadId: "thr_1" },
+]);
 
 trigger.blur();
 trigger.dataset.sidebarThreadId = "thr_local";
@@ -239,11 +345,15 @@ await new Promise((resolve) => setTimeout(resolve, 20));
 
 assert.equal(card.hidden, false);
 assert.match(card.textContent, /Local/);
-assert.match(card.textContent, /Done—hover cards are ready to use with Cmd\+R\./);
+assert.match(
+  card.textContent,
+  /Done—hover cards are ready for foo_bar_baz, _literal_, and tests with Cmd\+R\./,
+);
 assert.doesNotMatch(card.textContent, /Create concise hover cards/);
 assert.doesNotMatch(card.textContent, /##|\|\s*Work\s*\||---|Canary/);
 assert.doesNotMatch(card.textContent, /No Git repository/);
 assert.ok(card.querySelector(".bb-thread-hover-card__inline-strong"));
+assert.ok(card.querySelector(".bb-thread-hover-card__inline-emphasis"));
 assert.ok(card.querySelector(".bb-thread-hover-card__inline-code"));
 assert.ok(card.querySelector('[data-icon="LaptopIcon"]'));
 assert.ok(card.querySelector('[data-icon="CheckmarkCircle02Icon"]'));
@@ -253,6 +363,7 @@ assert.equal(
 );
 assert.equal(card.querySelector(".bb-thread-hover-card__runtime"), null);
 assert.deepEqual(requestBodies, [
+  { threadId: "thr_1" },
   { threadId: "thr_1" },
   { threadId: "thr_local" },
 ]);
@@ -270,8 +381,26 @@ assert.equal(card.querySelector(".bb-thread-hover-card__pr"), null);
 assert.equal(card.querySelectorAll(".bb-thread-hover-card__repository").length, 1);
 assert.deepEqual(requestBodies, [
   { threadId: "thr_1" },
+  { threadId: "thr_1" },
   { threadId: "thr_local" },
   { threadId: "thr_no_pr" },
+]);
+
+trigger.blur();
+await new Promise((resolve) => setTimeout(resolve, 140));
+trigger.dataset.sidebarThreadId = "thr_pr_unavailable";
+trigger.focus();
+await new Promise((resolve) => setTimeout(resolve, 20));
+
+assert.equal(card.hidden, false);
+assert.equal(card.querySelector(".bb-thread-hover-card__pr"), null);
+assert.doesNotMatch(card.textContent, /PR unavailable/);
+assert.deepEqual(requestBodies, [
+  { threadId: "thr_1" },
+  { threadId: "thr_1" },
+  { threadId: "thr_local" },
+  { threadId: "thr_no_pr" },
+  { threadId: "thr_pr_unavailable" },
 ]);
 
 const pluginCssLink = window.document.querySelector(
@@ -291,6 +420,40 @@ window.document.head.append(replacementCssLink);
 await new Promise((resolve) => setTimeout(resolve, 0));
 
 assert.ok(window.document.getElementById("bb-thread-hover-card-styles"));
+
+trigger.blur();
+trigger.dataset.sidebarThreadId = "thr_reload";
+const reloadPointerOver = new window.Event("pointerover", { bubbles: true });
+Object.defineProperties(reloadPointerOver, {
+  pointerType: { value: "mouse" },
+  relatedTarget: { value: null },
+});
+trigger.dispatchEvent(reloadPointerOver);
+await new Promise((resolve) => setTimeout(resolve, 120));
+
+assert.equal(window.document.getElementById("bb-thread-hover-card"), null);
+await new Promise((resolve) => setTimeout(resolve, 60));
+
+const reloadedCard = window.document.getElementById("bb-thread-hover-card");
+assert.ok(reloadedCard);
+assert.equal(reloadedCard.hidden, false);
+assert.deepEqual(requestBodies, [
+  { threadId: "thr_1" },
+  { threadId: "thr_1" },
+  { threadId: "thr_local" },
+  { threadId: "thr_no_pr" },
+  { threadId: "thr_pr_unavailable" },
+  { threadId: "thr_reload" },
+]);
+trigger.focus();
+const reloadedPullRequestLink = reloadedCard.querySelector(
+  ".bb-thread-hover-card__pr-link",
+);
+assert.ok(reloadedPullRequestLink);
+trigger.dispatchEvent(
+  new window.KeyboardEvent("keydown", { bubbles: true, key: "Tab" }),
+);
+assert.equal(window.document.activeElement, reloadedPullRequestLink);
 
 globalThis.__bbThreadHoverCards?.dispose();
 assert.equal(window.document.getElementById("bb-thread-hover-card-styles"), null);

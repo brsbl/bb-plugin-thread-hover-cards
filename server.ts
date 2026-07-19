@@ -131,6 +131,8 @@ function isRunningStatus(status: ThreadSummary["status"]): boolean {
   );
 }
 
+const TURN_START_WINDOW = 256;
+
 async function currentTurnStartedAt(
   bb: BbPluginApi,
   threadId: string,
@@ -147,43 +149,21 @@ async function currentTurnStartedAt(
   );
   if (!timeline) return null;
 
-  let sequenceWindow = 4_096;
-  while (true) {
-    const afterSeq = Math.max(0, timeline.maxSeq - sequenceWindow);
-    const events = await safely(
-      bb.sdk.threads.events.list({
-        threadId,
-        afterSeq: String(afterSeq),
-        limit: String(sequenceWindow + 1),
-      }),
-    );
-    if (!events) return null;
+  const anchorSeq = timeline.timelinePage.olderCursor?.anchorSeq ?? 1;
 
-    const latestStart = [...events]
-      .reverse()
-      .find(
-        (event) =>
-          event.type === "turn/started" &&
-          event.data.parentToolCallId === undefined,
-      );
-    if (latestStart) {
-      const turnId =
-        latestStart.scope.kind === "turn" ? latestStart.scope.turnId : null;
-      const completed =
-        turnId !== null &&
-        events.some(
-          (event) =>
-            event.type === "turn/completed" &&
-            event.scope.kind === "turn" &&
-            event.scope.turnId === turnId &&
-            event.seq > latestStart.seq,
-        );
-      return completed ? null : latestStart.createdAt;
-    }
-
-    if (afterSeq === 0) return null;
-    sequenceWindow *= 2;
-  }
+  const events = await safely(
+    bb.sdk.threads.events.list({
+      threadId,
+      afterSeq: String(Math.max(0, anchorSeq - 1)),
+      limit: String(TURN_START_WINDOW),
+    }),
+  );
+  const turnStart = events?.find(
+    (event) =>
+      event.type === "turn/started" &&
+      event.data.parentToolCallId === undefined,
+  );
+  return turnStart?.createdAt ?? null;
 }
 
 const PULL_REQUEST_SIGNALS = {
@@ -210,6 +190,7 @@ export default function plugin(bb: BbPluginApi): void {
         pullRequestResult,
         executionOptions,
         providers,
+        providerModels,
         threadOutput,
         turnStartedAt,
       ] =
@@ -238,6 +219,16 @@ export default function plugin(bb: BbPluginApi): void {
                 : undefined,
             ),
           ),
+          safely(
+            bb.sdk.providers.models(
+              thread.environmentId
+                ? {
+                    environmentId: thread.environmentId,
+                    providerId: thread.providerId,
+                  }
+                : { providerId: thread.providerId },
+            ),
+          ),
           thread.runtime.displayStatus === "idle"
             ? safely(bb.sdk.threads.output({ threadId }))
             : Promise.resolve(null),
@@ -252,6 +243,17 @@ export default function plugin(bb: BbPluginApi): void {
         environment?.isGitRepo ?? project?.gitRemoteUrl != null;
       const provider = providers?.find(
         (candidate) => candidate.id === thread.providerId,
+      );
+      const normalizedAssistantMessage = normalizeMessage(
+        threadOutput?.output ?? "",
+      );
+      const selectedModel = executionOptions?.model;
+      const model = [
+        ...(providerModels?.models ?? []),
+        ...(providerModels?.selectedOnlyModels ?? []),
+      ].find(
+        (candidate) =>
+          candidate.model === selectedModel || candidate.id === selectedModel,
       );
 
       let pullRequest: ThreadSummary["pullRequest"];
@@ -281,16 +283,15 @@ export default function plugin(bb: BbPluginApi): void {
 
       return {
         currentTurnStartedAt: turnStartedAt,
-        latestAssistantMessage: threadOutput?.output
-          ? normalizeMessage(threadOutput.output)
-          : null,
+        latestAssistantMessage: normalizedAssistantMessage || null,
         latestUserMessage: history ? latestVisibleMessage(history) : null,
         pullRequest,
         provider: {
           displayName: provider?.displayName ?? thread.providerId,
           id: thread.providerId,
           logoUrl: provider?.logoUrl ?? null,
-          model: executionOptions?.model ?? "Model unavailable",
+          model:
+            model?.displayName ?? selectedModel ?? "Model unavailable",
         },
         repository: {
           branch: environment?.branchName ?? null,
