@@ -6,18 +6,18 @@ export const HOVER_CARD_CSS = String.raw`
   max-height: calc(100vh - 1rem);
   overflow: hidden;
   padding: 0.75rem;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-color:
-    color-mix(in srgb, var(--foreground) 14%, transparent);
+    color-mix(in srgb, var(--foreground) 8%, transparent);
   border-radius: var(--radius-lg, 0.5rem);
   background: var(--popover);
   background: color-mix(in srgb, var(--popover) 82%, transparent);
   color: var(--popover-foreground);
   box-shadow:
     0 0.75rem 2.5rem
-      color-mix(in srgb, var(--foreground) 16%, transparent),
+      color-mix(in srgb, var(--foreground) 12%, transparent),
     inset 0 1px 0
-      color-mix(in srgb, var(--background) 48%, transparent);
+      color-mix(in srgb, var(--background) 34%, transparent);
   backdrop-filter: blur(18px) saturate(1.25);
   -webkit-backdrop-filter: blur(18px) saturate(1.25);
   font-family: inherit;
@@ -49,32 +49,26 @@ export const HOVER_CARD_CSS = String.raw`
   gap: 0.375rem;
 }
 
-.bb-thread-hover-card__status-dot {
-  width: 0.45rem;
-  height: 0.45rem;
+.bb-thread-hover-card__icon {
+  width: 0.875rem;
+  height: 0.875rem;
   flex: none;
-  border-radius: 999px;
-  background: var(--muted-foreground);
+  color: var(--muted-foreground);
 }
 
-.bb-thread-hover-card__status-dot[data-status="active"] {
-  background: var(--primary);
+.bb-thread-hover-card__status-icon[data-tone="working"] {
+  color: color-mix(in srgb, var(--muted-foreground) 62%, transparent);
 }
 
-.bb-thread-hover-card__status-dot[data-status="error"] {
-  background: var(--destructive);
+.bb-thread-hover-card__status-icon[data-tone="danger"] {
+  color: var(--destructive);
 }
 
-.bb-thread-hover-card__status-dot[data-status="provisioning"],
-.bb-thread-hover-card__status-dot[data-status="starting"],
-.bb-thread-hover-card__status-dot[data-status="stopping"],
-.bb-thread-hover-card__status-dot[data-status="host-reconnecting"],
-.bb-thread-hover-card__status-dot[data-status="waiting-for-host"] {
-  background: var(--warning);
+.bb-thread-hover-card__status-icon[data-tone="warning"] {
+  color: var(--warning-text, var(--warning));
 }
 
 .bb-thread-hover-card__updated,
-.bb-thread-hover-card__eyebrow,
 .bb-thread-hover-card__loading,
 .bb-thread-hover-card__meta-label,
 .bb-thread-hover-card__repository {
@@ -86,32 +80,41 @@ export const HOVER_CARD_CSS = String.raw`
   font-variant-numeric: tabular-nums;
 }
 
-.bb-thread-hover-card__section,
 .bb-thread-hover-card__repository {
   margin-top: 0.625rem;
   padding-top: 0.625rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid
+    color-mix(in srgb, var(--foreground) 6%, transparent);
 }
 
-.bb-thread-hover-card__eyebrow,
+.bb-thread-hover-card__summary,
 .bb-thread-hover-card__message,
 .bb-thread-hover-card__meta,
 .bb-thread-hover-card__loading {
   margin: 0;
 }
 
-.bb-thread-hover-card__eyebrow {
-  margin-bottom: 0.25rem;
-  font-size: 0.6875rem;
-  font-weight: 500;
-  letter-spacing: 0.025em;
-  text-transform: uppercase;
+.bb-thread-hover-card__summary {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 0.4375rem;
+  margin-top: 0.625rem;
+}
+
+.bb-thread-hover-card__summary-icon {
+  margin-top: 0.125rem;
+  color: color-mix(in srgb, var(--muted-foreground) 78%, transparent);
 }
 
 .bb-thread-hover-card__message {
   display: -webkit-box;
+  min-width: 0;
   overflow: hidden;
   color: var(--foreground);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.45;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
 }
@@ -123,6 +126,10 @@ export const HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__meta {
   gap: 0.375rem;
+}
+
+.bb-thread-hover-card__meta-icon {
+  color: color-mix(in srgb, var(--muted-foreground) 78%, transparent);
 }
 
 .bb-thread-hover-card__meta-label {
@@ -150,15 +157,6 @@ export const HOVER_CARD_CSS = String.raw`
   white-space: nowrap;
 }
 
-.bb-thread-hover-card__pr[data-kind="available"]::before {
-  width: 0.35rem;
-  height: 0.35rem;
-  flex: none;
-  border-radius: 999px;
-  background: var(--success);
-  content: "";
-}
-
 .bb-thread-hover-card__pr-link {
   display: flex;
   min-width: 0;
@@ -180,8 +178,45 @@ export const HOVER_CARD_CSS = String.raw`
   outline-offset: 2px;
 }
 
-.bb-thread-hover-card__external-mark {
+.bb-thread-hover-card__pr-status {
   flex: none;
+  padding: 0.0625rem 0.3125rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted-foreground) 7%, transparent);
+  color: var(--muted-foreground);
+  font-size: 0.625rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.bb-thread-hover-card__pr-status[data-tone="success"] {
+  border-color: color-mix(in oklab, var(--success) 18%, transparent);
+  background: color-mix(in oklab, var(--success) 9%, transparent);
+  color: color-mix(in oklab, var(--success) 80%, var(--foreground));
+}
+
+.bb-thread-hover-card__pr-status[data-tone="warning"] {
+  border-color:
+    color-mix(in oklab, var(--warning-text, var(--warning)) 18%, transparent);
+  background:
+    color-mix(in oklab, var(--warning-text, var(--warning)) 8%, transparent);
+  color: var(--warning-text, var(--warning));
+}
+
+.bb-thread-hover-card__pr-status[data-tone="danger"] {
+  border-color:
+    color-mix(in oklab, var(--destructive-text, var(--destructive)) 18%, transparent);
+  background:
+    color-mix(in oklab, var(--destructive-text, var(--destructive)) 8%, transparent);
+  color: var(--destructive-text, var(--destructive));
+}
+
+.bb-thread-hover-card__link-icon {
+  flex: none;
+  width: 0.8125rem;
+  height: 0.8125rem;
+  color: var(--muted-foreground);
 }
 
 .bb-thread-hover-card__loading {
@@ -200,8 +235,19 @@ export const HOVER_CARD_CSS = String.raw`
   }
 }
 
+@keyframes bb-thread-hover-card-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bb-thread-hover-card__status-icon[data-animated="true"] {
+  animation: bb-thread-hover-card-spin 1s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .bb-thread-hover-card.is-visible {
+  .bb-thread-hover-card.is-visible,
+  .bb-thread-hover-card__status-icon[data-animated="true"] {
     animation: none;
   }
 }

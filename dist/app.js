@@ -15,6 +15,55 @@ var {
   useSettings
 } = mod;
 
+// node_modules/@hugeicons/core-free-icons/dist/esm/Alert02Icon.js
+var Alert02Icon = [
+  ["path", { d: "M13.9248 21H10.0752C5.44476 21 3.12955 21 2.27636 19.4939C1.42317 17.9879 2.60736 15.9914 4.97574 11.9985L6.90057 8.75333C9.17559 4.91778 10.3131 3 12 3C13.6869 3 14.8244 4.91777 17.0994 8.75332L19.0243 11.9985C21.3926 15.9914 22.5768 17.9879 21.7236 19.4939C20.8704 21 18.5552 21 13.9248 21Z", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "0" }],
+  ["path", { d: "M12 9V13", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "1" }],
+  ["path", { d: "M12.125 16.75H12M12.25 16.75C12.25 16.8881 12.1381 17 12 17C11.8619 17 11.75 16.8881 11.75 16.75C11.75 16.6119 11.8619 16.5 12 16.5C12.1381 16.5 12.25 16.6119 12.25 16.75Z", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "2" }]
+];
+
+// node_modules/@hugeicons/core-free-icons/dist/esm/ArrowLeft03Icon.js
+var ArrowLeft03Icon = [
+  ["path", { d: "M4 6L4 18", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "0" }],
+  ["path", { d: "M8.00012 12.0005L20.0001 12.0005", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "1" }],
+  ["path", { d: "M12 8C12 8 8.00001 10.946 8 12C7.99999 13.0541 12 16 12 16", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "2" }]
+];
+
+// node_modules/@hugeicons/core-free-icons/dist/esm/CancelCircleIcon.js
+var CancelCircleIcon = [
+  ["path", { d: "M22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12Z", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "0" }],
+  ["path", { d: "M14.9994 15L9 9M9.00064 15L15 9", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "1" }]
+];
+
+// node_modules/@hugeicons/core-free-icons/dist/esm/Folder01Icon.js
+var Folder01Icon = [
+  ["path", { d: "M8 7H16.75C18.8567 7 19.91 7 20.6667 7.50559C20.9943 7.72447 21.2755 8.00572 21.4944 8.33329C22 9.08996 22 10.1433 22 12.25C22 15.7612 22 17.5167 21.1573 18.7779C20.7926 19.3238 20.3238 19.7926 19.7779 20.1573C18.5167 21 16.7612 21 13.25 21H12C7.28595 21 4.92893 21 3.46447 19.5355C2 18.0711 2 15.714 2 11V7.94427C2 6.1278 2 5.21956 2.38032 4.53806C2.65142 4.05227 3.05227 3.65142 3.53806 3.38032C4.21956 3 5.1278 3 6.94427 3C8.10802 3 8.6899 3 9.19926 3.19101C10.3622 3.62712 10.8418 4.68358 11.3666 5.73313L12 7", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "0" }]
+];
+
+// node_modules/@hugeicons/core-free-icons/dist/esm/LinkSquare01Icon.js
+var LinkSquare01Icon = [
+  ["path", { d: "M11.1004 3.00208C7.4515 3.00864 5.54073 3.09822 4.31962 4.31931C3.00183 5.63706 3.00183 7.75796 3.00183 11.9997C3.00183 16.2415 3.00183 18.3624 4.31962 19.6801C5.6374 20.9979 7.75836 20.9979 12.0003 20.9979C16.2421 20.9979 18.3631 20.9979 19.6809 19.6801C20.902 18.4591 20.9916 16.5484 20.9982 12.8996", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "0" }],
+  ["path", { d: "M20.4803 3.51751L14.931 9.0515M20.4803 3.51751C19.9863 3.023 16.6587 3.0691 15.9552 3.0791M20.4803 3.51751C20.9742 4.01202 20.9282 7.34329 20.9182 8.04754", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "1" }]
+];
+
+// node_modules/@hugeicons/core-free-icons/dist/esm/Loading03Icon.js
+var Loading03Icon = [
+  ["path", { d: "M12 3V6", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "0" }],
+  ["path", { d: "M12 18V21", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "1" }],
+  ["path", { d: "M21 12L18 12", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "2" }],
+  ["path", { d: "M6 12L3 12", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "3" }],
+  ["path", { d: "M18.3635 5.63672L16.2422 7.75804", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "4" }],
+  ["path", { d: "M7.75804 16.2422L5.63672 18.3635", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "5" }],
+  ["path", { d: "M18.3635 18.3635L16.2422 16.2422", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "6" }],
+  ["path", { d: "M7.75804 7.75804L5.63672 5.63672", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "7" }]
+];
+
+// node_modules/@hugeicons/core-free-icons/dist/esm/PauseIcon.js
+var PauseIcon = [
+  ["path", { d: "M4 7C4 5.58579 4 4.87868 4.43934 4.43934C4.87868 4 5.58579 4 7 4C8.41421 4 9.12132 4 9.56066 4.43934C10 4.87868 10 5.58579 10 7V17C10 18.4142 10 19.1213 9.56066 19.5607C9.12132 20 8.41421 20 7 20C5.58579 20 4.87868 20 4.43934 19.5607C4 19.1213 4 18.4142 4 17V7Z", stroke: "currentColor", strokeWidth: "1.5", key: "0" }],
+  ["path", { d: "M14 7C14 5.58579 14 4.87868 14.4393 4.43934C14.8787 4 15.5858 4 17 4C18.4142 4 19.1213 4 19.5607 4.43934C20 4.87868 20 5.58579 20 7V17C20 18.4142 20 19.1213 19.5607 19.5607C19.1213 20 18.4142 20 17 20C15.5858 20 14.8787 20 14.4393 19.5607C14 19.1213 14 18.4142 14 17V7Z", stroke: "currentColor", strokeWidth: "1.5", key: "1" }]
+];
+
 // styles.ts
 var HOVER_CARD_CSS = String.raw`
 .bb-thread-hover-card {
@@ -24,18 +73,18 @@ var HOVER_CARD_CSS = String.raw`
   max-height: calc(100vh - 1rem);
   overflow: hidden;
   padding: 0.75rem;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-color:
-    color-mix(in srgb, var(--foreground) 14%, transparent);
+    color-mix(in srgb, var(--foreground) 8%, transparent);
   border-radius: var(--radius-lg, 0.5rem);
   background: var(--popover);
   background: color-mix(in srgb, var(--popover) 82%, transparent);
   color: var(--popover-foreground);
   box-shadow:
     0 0.75rem 2.5rem
-      color-mix(in srgb, var(--foreground) 16%, transparent),
+      color-mix(in srgb, var(--foreground) 12%, transparent),
     inset 0 1px 0
-      color-mix(in srgb, var(--background) 48%, transparent);
+      color-mix(in srgb, var(--background) 34%, transparent);
   backdrop-filter: blur(18px) saturate(1.25);
   -webkit-backdrop-filter: blur(18px) saturate(1.25);
   font-family: inherit;
@@ -67,32 +116,26 @@ var HOVER_CARD_CSS = String.raw`
   gap: 0.375rem;
 }
 
-.bb-thread-hover-card__status-dot {
-  width: 0.45rem;
-  height: 0.45rem;
+.bb-thread-hover-card__icon {
+  width: 0.875rem;
+  height: 0.875rem;
   flex: none;
-  border-radius: 999px;
-  background: var(--muted-foreground);
+  color: var(--muted-foreground);
 }
 
-.bb-thread-hover-card__status-dot[data-status="active"] {
-  background: var(--primary);
+.bb-thread-hover-card__status-icon[data-tone="working"] {
+  color: color-mix(in srgb, var(--muted-foreground) 62%, transparent);
 }
 
-.bb-thread-hover-card__status-dot[data-status="error"] {
-  background: var(--destructive);
+.bb-thread-hover-card__status-icon[data-tone="danger"] {
+  color: var(--destructive);
 }
 
-.bb-thread-hover-card__status-dot[data-status="provisioning"],
-.bb-thread-hover-card__status-dot[data-status="starting"],
-.bb-thread-hover-card__status-dot[data-status="stopping"],
-.bb-thread-hover-card__status-dot[data-status="host-reconnecting"],
-.bb-thread-hover-card__status-dot[data-status="waiting-for-host"] {
-  background: var(--warning);
+.bb-thread-hover-card__status-icon[data-tone="warning"] {
+  color: var(--warning-text, var(--warning));
 }
 
 .bb-thread-hover-card__updated,
-.bb-thread-hover-card__eyebrow,
 .bb-thread-hover-card__loading,
 .bb-thread-hover-card__meta-label,
 .bb-thread-hover-card__repository {
@@ -104,32 +147,41 @@ var HOVER_CARD_CSS = String.raw`
   font-variant-numeric: tabular-nums;
 }
 
-.bb-thread-hover-card__section,
 .bb-thread-hover-card__repository {
   margin-top: 0.625rem;
   padding-top: 0.625rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid
+    color-mix(in srgb, var(--foreground) 6%, transparent);
 }
 
-.bb-thread-hover-card__eyebrow,
+.bb-thread-hover-card__summary,
 .bb-thread-hover-card__message,
 .bb-thread-hover-card__meta,
 .bb-thread-hover-card__loading {
   margin: 0;
 }
 
-.bb-thread-hover-card__eyebrow {
-  margin-bottom: 0.25rem;
-  font-size: 0.6875rem;
-  font-weight: 500;
-  letter-spacing: 0.025em;
-  text-transform: uppercase;
+.bb-thread-hover-card__summary {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 0.4375rem;
+  margin-top: 0.625rem;
+}
+
+.bb-thread-hover-card__summary-icon {
+  margin-top: 0.125rem;
+  color: color-mix(in srgb, var(--muted-foreground) 78%, transparent);
 }
 
 .bb-thread-hover-card__message {
   display: -webkit-box;
+  min-width: 0;
   overflow: hidden;
   color: var(--foreground);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.45;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
 }
@@ -141,6 +193,10 @@ var HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__meta {
   gap: 0.375rem;
+}
+
+.bb-thread-hover-card__meta-icon {
+  color: color-mix(in srgb, var(--muted-foreground) 78%, transparent);
 }
 
 .bb-thread-hover-card__meta-label {
@@ -168,15 +224,6 @@ var HOVER_CARD_CSS = String.raw`
   white-space: nowrap;
 }
 
-.bb-thread-hover-card__pr[data-kind="available"]::before {
-  width: 0.35rem;
-  height: 0.35rem;
-  flex: none;
-  border-radius: 999px;
-  background: var(--success);
-  content: "";
-}
-
 .bb-thread-hover-card__pr-link {
   display: flex;
   min-width: 0;
@@ -198,8 +245,45 @@ var HOVER_CARD_CSS = String.raw`
   outline-offset: 2px;
 }
 
-.bb-thread-hover-card__external-mark {
+.bb-thread-hover-card__pr-status {
   flex: none;
+  padding: 0.0625rem 0.3125rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted-foreground) 7%, transparent);
+  color: var(--muted-foreground);
+  font-size: 0.625rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.bb-thread-hover-card__pr-status[data-tone="success"] {
+  border-color: color-mix(in oklab, var(--success) 18%, transparent);
+  background: color-mix(in oklab, var(--success) 9%, transparent);
+  color: color-mix(in oklab, var(--success) 80%, var(--foreground));
+}
+
+.bb-thread-hover-card__pr-status[data-tone="warning"] {
+  border-color:
+    color-mix(in oklab, var(--warning-text, var(--warning)) 18%, transparent);
+  background:
+    color-mix(in oklab, var(--warning-text, var(--warning)) 8%, transparent);
+  color: var(--warning-text, var(--warning));
+}
+
+.bb-thread-hover-card__pr-status[data-tone="danger"] {
+  border-color:
+    color-mix(in oklab, var(--destructive-text, var(--destructive)) 18%, transparent);
+  background:
+    color-mix(in oklab, var(--destructive-text, var(--destructive)) 8%, transparent);
+  color: var(--destructive-text, var(--destructive));
+}
+
+.bb-thread-hover-card__link-icon {
+  flex: none;
+  width: 0.8125rem;
+  height: 0.8125rem;
+  color: var(--muted-foreground);
 }
 
 .bb-thread-hover-card__loading {
@@ -218,8 +302,19 @@ var HOVER_CARD_CSS = String.raw`
   }
 }
 
+@keyframes bb-thread-hover-card-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bb-thread-hover-card__status-icon[data-animated="true"] {
+  animation: bb-thread-hover-card-spin 1s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .bb-thread-hover-card.is-visible {
+  .bb-thread-hover-card.is-visible,
+  .bb-thread-hover-card__status-icon[data-animated="true"] {
     animation: none;
   }
 }
@@ -243,21 +338,88 @@ var THREAD_ROW_SELECTOR = ".group\\/thread-row";
 var OPEN_DELAY_MS = 150;
 var CLOSE_DELAY_MS = 120;
 var CACHE_TTL_MS = 1e4;
-var STATUS_LABELS = {
-  active: "Working",
-  error: "Error",
-  "host-reconnecting": "Reconnecting",
-  idle: "Idle",
-  provisioning: "Provisioning",
-  starting: "Starting",
-  stopping: "Stopping",
-  "waiting-for-host": "Waiting for host"
-};
+var SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 function element(tag, className, text) {
   const node = document.createElement(tag);
   node.className = className;
   if (text !== void 0) node.textContent = text;
   return node;
+}
+function icon(definition, name, className) {
+  const svg = document.createElementNS(SVG_NAMESPACE, "svg");
+  svg.classList.add(...className.split(/\s+/).filter(Boolean));
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("data-icon", name);
+  svg.setAttribute("aria-hidden", "true");
+  for (const [tag, attributes] of definition) {
+    const child = document.createElementNS(SVG_NAMESPACE, tag);
+    for (const [attribute, value] of Object.entries(attributes)) {
+      if (attribute === "key" || value === void 0 || value === null) {
+        continue;
+      }
+      const normalizedAttribute = attribute.replace(
+        /[A-Z]/g,
+        (letter) => `-${letter.toLowerCase()}`
+      );
+      child.setAttribute(normalizedAttribute, String(value));
+    }
+    svg.append(child);
+  }
+  return svg;
+}
+function statusPresentation(status) {
+  switch (status) {
+    case "active":
+    case "host-reconnecting":
+    case "provisioning":
+    case "starting":
+    case "stopping":
+      return {
+        animated: true,
+        icon: Loading03Icon,
+        iconName: "Loading03Icon",
+        label: "Agent working",
+        tone: "working"
+      };
+    case "error":
+      return {
+        animated: false,
+        icon: CancelCircleIcon,
+        iconName: "CancelCircleIcon",
+        label: "Thread failed",
+        tone: "danger"
+      };
+    case "waiting-for-host":
+      return {
+        animated: false,
+        icon: Alert02Icon,
+        iconName: "Alert02Icon",
+        label: "Waiting for host",
+        tone: "warning"
+      };
+    case "idle":
+      return {
+        animated: false,
+        icon: PauseIcon,
+        iconName: "PauseIcon",
+        label: "Idle",
+        tone: "muted"
+      };
+  }
+}
+function pullRequestTone(pullRequest) {
+  const signal = pullRequest.signal.toLowerCase();
+  if (signal.includes("failing") || signal.includes("blocked") || signal.includes("changes requested") || signal.includes("conflict")) {
+    return "danger";
+  }
+  if (pullRequest.state === "merged" || signal.includes("passing") || signal.includes("ready to merge")) {
+    return "success";
+  }
+  if (pullRequest.state === "draft" || signal.includes("pending") || signal.includes("review requested")) {
+    return "warning";
+  }
+  return "muted";
 }
 function findThreadTrigger(target) {
   if (!(target instanceof Element)) return null;
@@ -317,23 +479,35 @@ function renderError(card) {
 function renderSummary(card, summary) {
   const header = element("div", "bb-thread-hover-card__header");
   const status = element("div", "bb-thread-hover-card__status");
-  const dot = element("span", "bb-thread-hover-card__status-dot");
-  dot.dataset.status = summary.status;
-  dot.setAttribute("aria-hidden", "true");
-  status.append(dot, element("span", "", STATUS_LABELS[summary.status]));
+  const statusDetails = statusPresentation(summary.status);
+  const statusIcon = icon(
+    statusDetails.icon,
+    statusDetails.iconName,
+    "bb-thread-hover-card__icon bb-thread-hover-card__status-icon"
+  );
+  statusIcon.dataset.tone = statusDetails.tone;
+  if (statusDetails.animated) statusIcon.dataset.animated = "true";
+  status.append(
+    statusIcon,
+    element("span", "bb-thread-hover-card__status-label", statusDetails.label)
+  );
   header.append(
     status,
     element(
       "span",
       "bb-thread-hover-card__updated",
-      relativeTime(summary.updatedAt)
+      `Updated ${relativeTime(summary.updatedAt)}`
     )
   );
   const content = [header];
   if (summary.latestUserMessage) {
-    const request = element("section", "bb-thread-hover-card__section");
+    const request = element("section", "bb-thread-hover-card__summary");
     request.append(
-      element("p", "bb-thread-hover-card__eyebrow", "Latest request"),
+      icon(
+        ArrowLeft03Icon,
+        "ArrowLeft03Icon",
+        "bb-thread-hover-card__icon bb-thread-hover-card__summary-icon"
+      ),
       element(
         "p",
         "bb-thread-hover-card__message",
@@ -347,13 +521,24 @@ function renderSummary(card, summary) {
     "bb-thread-hover-card__repository"
   );
   if (!summary.repository.isGitRepository) {
-    repository.append(
-      element("p", "bb-thread-hover-card__meta", "No Git repository")
+    const noRepository = element("p", "bb-thread-hover-card__meta");
+    noRepository.append(
+      icon(
+        Folder01Icon,
+        "Folder01Icon",
+        "bb-thread-hover-card__icon bb-thread-hover-card__meta-icon"
+      ),
+      element("span", "", "No Git repository")
     );
+    repository.append(noRepository);
   } else {
     const repoLine = element("p", "bb-thread-hover-card__meta");
     repoLine.append(
-      element("span", "bb-thread-hover-card__meta-label", "Repo"),
+      icon(
+        Folder01Icon,
+        "Folder01Icon",
+        "bb-thread-hover-card__icon bb-thread-hover-card__meta-icon"
+      ),
       element("span", "bb-thread-hover-card__truncate", summary.repository.name)
     );
     if (summary.repository.branch) {
@@ -386,22 +571,36 @@ function renderSummary(card, summary) {
         element(
           "span",
           "bb-thread-hover-card__truncate",
-          `#${summary.pullRequest.number} \xB7 ${summary.pullRequest.signal}`
+          `#${summary.pullRequest.number}`
         )
       );
-      const externalMark = element(
+      const pullRequestStatus = element(
         "span",
-        "bb-thread-hover-card__external-mark",
-        "\u2197"
+        "bb-thread-hover-card__pr-status",
+        summary.pullRequest.signal
       );
-      externalMark.setAttribute("aria-hidden", "true");
-      pullRequestLink.append(externalMark);
+      pullRequestStatus.dataset.tone = pullRequestTone(summary.pullRequest);
+      pullRequestLink.append(
+        pullRequestStatus,
+        icon(
+          LinkSquare01Icon,
+          "LinkSquare01Icon",
+          "bb-thread-hover-card__icon bb-thread-hover-card__link-icon"
+        )
+      );
       pullRequestLine.append(
         element("span", "bb-thread-hover-card__meta-label", "PR"),
         pullRequestLink
       );
     } else {
-      pullRequestLine.textContent = summary.pullRequest.kind === "absent" ? "No pull request" : "Pull request unavailable";
+      pullRequestLine.append(
+        element("span", "bb-thread-hover-card__meta-label", "PR"),
+        element(
+          "span",
+          "",
+          summary.pullRequest.kind === "absent" ? "No pull request" : "Pull request unavailable"
+        )
+      );
     }
     repository.append(pullRequestLine);
   }

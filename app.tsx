@@ -1,4 +1,13 @@
 import { definePluginApp } from "@bb/plugin-sdk/app";
+import {
+  Alert02Icon,
+  ArrowLeft03Icon,
+  CancelCircleIcon,
+  Folder01Icon,
+  LinkSquare01Icon,
+  Loading03Icon,
+  PauseIcon,
+} from "@hugeicons/core-free-icons";
 import type { ThreadSummary } from "./server";
 import { HOVER_CARD_CSS } from "./styles";
 
@@ -21,16 +30,22 @@ interface HoverCardController {
   dispose(): void;
 }
 
-const STATUS_LABELS: Record<ThreadSummary["status"], string> = {
-  active: "Working",
-  error: "Error",
-  "host-reconnecting": "Reconnecting",
-  idle: "Idle",
-  provisioning: "Provisioning",
-  starting: "Starting",
-  stopping: "Stopping",
-  "waiting-for-host": "Waiting for host",
-};
+const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+type HugeiconDefinition = readonly (
+  readonly [string, { readonly [key: string]: string | number }]
+)[];
+
+interface StatusPresentation {
+  animated: boolean;
+  icon: HugeiconDefinition;
+  iconName:
+    | "Alert02Icon"
+    | "CancelCircleIcon"
+    | "Loading03Icon"
+    | "PauseIcon";
+  label: string;
+  tone: "danger" | "muted" | "warning" | "working";
+}
 
 function element<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -41,6 +56,108 @@ function element<K extends keyof HTMLElementTagNameMap>(
   node.className = className;
   if (text !== undefined) node.textContent = text;
   return node;
+}
+
+function icon(
+  definition: HugeiconDefinition,
+  name: string,
+  className: string,
+): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NAMESPACE, "svg");
+  svg.classList.add(...className.split(/\s+/).filter(Boolean));
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("data-icon", name);
+  svg.setAttribute("aria-hidden", "true");
+
+  for (const [tag, attributes] of definition) {
+    const child = document.createElementNS(SVG_NAMESPACE, tag);
+    for (const [attribute, value] of Object.entries(attributes)) {
+      if (attribute === "key" || value === undefined || value === null) {
+        continue;
+      }
+      const normalizedAttribute = attribute.replace(
+        /[A-Z]/g,
+        (letter) => `-${letter.toLowerCase()}`,
+      );
+      child.setAttribute(normalizedAttribute, String(value));
+    }
+    svg.append(child);
+  }
+
+  return svg;
+}
+
+function statusPresentation(
+  status: ThreadSummary["status"],
+): StatusPresentation {
+  switch (status) {
+    case "active":
+    case "host-reconnecting":
+    case "provisioning":
+    case "starting":
+    case "stopping":
+      return {
+        animated: true,
+        icon: Loading03Icon,
+        iconName: "Loading03Icon",
+        label: "Agent working",
+        tone: "working",
+      };
+    case "error":
+      return {
+        animated: false,
+        icon: CancelCircleIcon,
+        iconName: "CancelCircleIcon",
+        label: "Thread failed",
+        tone: "danger",
+      };
+    case "waiting-for-host":
+      return {
+        animated: false,
+        icon: Alert02Icon,
+        iconName: "Alert02Icon",
+        label: "Waiting for host",
+        tone: "warning",
+      };
+    case "idle":
+      return {
+        animated: false,
+        icon: PauseIcon,
+        iconName: "PauseIcon",
+        label: "Idle",
+        tone: "muted",
+      };
+  }
+}
+
+function pullRequestTone(
+  pullRequest: Extract<ThreadSummary["pullRequest"], { kind: "available" }>,
+): "danger" | "muted" | "success" | "warning" {
+  const signal = pullRequest.signal.toLowerCase();
+  if (
+    signal.includes("failing") ||
+    signal.includes("blocked") ||
+    signal.includes("changes requested") ||
+    signal.includes("conflict")
+  ) {
+    return "danger";
+  }
+  if (
+    pullRequest.state === "merged" ||
+    signal.includes("passing") ||
+    signal.includes("ready to merge")
+  ) {
+    return "success";
+  }
+  if (
+    pullRequest.state === "draft" ||
+    signal.includes("pending") ||
+    signal.includes("review requested")
+  ) {
+    return "warning";
+  }
+  return "muted";
 }
 
 function findThreadTrigger(target: EventTarget | null): HTMLAnchorElement | null {
@@ -115,25 +232,37 @@ function renderError(card: HTMLElement): void {
 function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
   const header = element("div", "bb-thread-hover-card__header");
   const status = element("div", "bb-thread-hover-card__status");
-  const dot = element("span", "bb-thread-hover-card__status-dot");
-  dot.dataset.status = summary.status;
-  dot.setAttribute("aria-hidden", "true");
-  status.append(dot, element("span", "", STATUS_LABELS[summary.status]));
+  const statusDetails = statusPresentation(summary.status);
+  const statusIcon = icon(
+    statusDetails.icon,
+    statusDetails.iconName,
+    "bb-thread-hover-card__icon bb-thread-hover-card__status-icon",
+  );
+  statusIcon.dataset.tone = statusDetails.tone;
+  if (statusDetails.animated) statusIcon.dataset.animated = "true";
+  status.append(
+    statusIcon,
+    element("span", "bb-thread-hover-card__status-label", statusDetails.label),
+  );
   header.append(
     status,
     element(
       "span",
       "bb-thread-hover-card__updated",
-      relativeTime(summary.updatedAt),
+      `Updated ${relativeTime(summary.updatedAt)}`,
     ),
   );
 
   const content: HTMLElement[] = [header];
 
   if (summary.latestUserMessage) {
-    const request = element("section", "bb-thread-hover-card__section");
+    const request = element("section", "bb-thread-hover-card__summary");
     request.append(
-      element("p", "bb-thread-hover-card__eyebrow", "Latest request"),
+      icon(
+        ArrowLeft03Icon,
+        "ArrowLeft03Icon",
+        "bb-thread-hover-card__icon bb-thread-hover-card__summary-icon",
+      ),
       element(
         "p",
         "bb-thread-hover-card__message",
@@ -148,13 +277,24 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
     "bb-thread-hover-card__repository",
   );
   if (!summary.repository.isGitRepository) {
-    repository.append(
-      element("p", "bb-thread-hover-card__meta", "No Git repository"),
+    const noRepository = element("p", "bb-thread-hover-card__meta");
+    noRepository.append(
+      icon(
+        Folder01Icon,
+        "Folder01Icon",
+        "bb-thread-hover-card__icon bb-thread-hover-card__meta-icon",
+      ),
+      element("span", "", "No Git repository"),
     );
+    repository.append(noRepository);
   } else {
     const repoLine = element("p", "bb-thread-hover-card__meta");
     repoLine.append(
-      element("span", "bb-thread-hover-card__meta-label", "Repo"),
+      icon(
+        Folder01Icon,
+        "Folder01Icon",
+        "bb-thread-hover-card__icon bb-thread-hover-card__meta-icon",
+      ),
       element("span", "bb-thread-hover-card__truncate", summary.repository.name),
     );
     if (summary.repository.branch) {
@@ -188,25 +328,38 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
         element(
           "span",
           "bb-thread-hover-card__truncate",
-          `#${summary.pullRequest.number} · ${summary.pullRequest.signal}`,
+          `#${summary.pullRequest.number}`,
         ),
       );
-      const externalMark = element(
+      const pullRequestStatus = element(
         "span",
-        "bb-thread-hover-card__external-mark",
-        "↗",
+        "bb-thread-hover-card__pr-status",
+        summary.pullRequest.signal,
       );
-      externalMark.setAttribute("aria-hidden", "true");
-      pullRequestLink.append(externalMark);
+      pullRequestStatus.dataset.tone = pullRequestTone(summary.pullRequest);
+      pullRequestLink.append(
+        pullRequestStatus,
+        icon(
+          LinkSquare01Icon,
+          "LinkSquare01Icon",
+          "bb-thread-hover-card__icon bb-thread-hover-card__link-icon",
+        ),
+      );
       pullRequestLine.append(
         element("span", "bb-thread-hover-card__meta-label", "PR"),
         pullRequestLink,
       );
     } else {
-      pullRequestLine.textContent =
-        summary.pullRequest.kind === "absent"
-          ? "No pull request"
-          : "Pull request unavailable";
+      pullRequestLine.append(
+        element("span", "bb-thread-hover-card__meta-label", "PR"),
+        element(
+          "span",
+          "",
+          summary.pullRequest.kind === "absent"
+            ? "No pull request"
+            : "Pull request unavailable",
+        ),
+      );
     }
     repository.append(pullRequestLine);
   }

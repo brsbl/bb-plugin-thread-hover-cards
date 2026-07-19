@@ -84,6 +84,9 @@ assert.match(
   /background: color-mix\(in srgb, var\(--popover\) 82%, transparent\)/,
 );
 assert.match(style.textContent, /backdrop-filter: blur\(18px\)/);
+assert.match(style.textContent, /var\(--foreground\) 8%, transparent/);
+assert.match(style.textContent, /\.bb-thread-hover-card__pr-status/);
+assert.match(style.textContent, /var\(--success\) 9%, transparent/);
 assert.match(style.textContent, /@supports not/);
 
 const pointerOver = new window.Event("pointerover", { bubbles: true });
@@ -92,7 +95,10 @@ Object.defineProperties(pointerOver, {
   relatedTarget: { value: null },
 });
 trigger.dispatchEvent(pointerOver);
-await new Promise((resolve) => setTimeout(resolve, 180));
+await new Promise((resolve) => setTimeout(resolve, 120));
+
+assert.equal(window.document.getElementById("bb-thread-hover-card"), null);
+await new Promise((resolve) => setTimeout(resolve, 60));
 
 const card = window.document.getElementById("bb-thread-hover-card");
 assert.ok(card);
@@ -101,15 +107,25 @@ assert.equal(card.dataset.bbPlugin, "thread-hover-cards");
 assert.equal(card.hasAttribute("data-bb-portaled-overlay"), true);
 assert.equal(trigger.getAttribute("aria-describedby"), "bb-thread-hover-card");
 assert.deepEqual(requestBodies, [{ threadId: "thr_1" }]);
-assert.match(card.textContent, /Working/);
+assert.match(card.textContent, /Agent working/);
+assert.match(card.textContent, /Updated now/);
 assert.match(card.textContent, /Create concise hover cards/);
 assert.match(card.textContent, /acme\/bb/);
-assert.match(card.textContent, /#42 · Checks passing/);
+assert.match(card.textContent, /#42Checks passing/);
+assert.doesNotMatch(card.textContent, /Latest request/i);
+assert.ok(card.querySelector('[data-icon="Loading03Icon"]'));
+assert.ok(card.querySelector('[data-icon="ArrowLeft03Icon"]'));
+assert.ok(card.querySelector('[data-icon="Folder01Icon"]'));
+assert.ok(card.querySelector('[data-icon="LinkSquare01Icon"]'));
 
 const pullRequestLink = card.querySelector(".bb-thread-hover-card__pr-link");
 assert.ok(pullRequestLink);
 assert.equal(pullRequestLink.href, "https://github.com/acme/bb/pull/42");
 assert.equal(pullRequestLink.target, "_blank");
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__pr-status")?.dataset.tone,
+  "success",
+);
 
 trigger.focus();
 const focusedPointerOut = new window.Event("pointerout", { bubbles: true });
