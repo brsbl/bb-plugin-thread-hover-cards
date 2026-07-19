@@ -338,6 +338,11 @@ assert.equal(
   card.querySelector(".bb-thread-hover-card__access")?.dataset.permissionMode,
   "full",
 );
+assert.ok(
+  card
+    .querySelector(".bb-thread-hover-card__access")
+    ?.querySelector('[data-icon="SquareUnlock02Icon"]'),
+);
 assert.equal(
   card.querySelector(".bb-thread-hover-card__access")?.getAttribute("aria-label"),
   "Permission: Full access",
@@ -557,6 +562,11 @@ assert.equal(
   card.querySelector(".bb-thread-hover-card__access")?.textContent,
   "Read only",
 );
+assert.ok(
+  card
+    .querySelector(".bb-thread-hover-card__access")
+    ?.querySelector('[data-icon="ViewIcon"]'),
+);
 assert.equal(
   card.querySelector(".bb-thread-hover-card__access")?.parentElement,
   card.querySelector(".bb-thread-hover-card__provider-identity"),
@@ -635,6 +645,11 @@ assert.equal(
 assert.equal(
   card.querySelector(".bb-thread-hover-card__access")?.textContent,
   "Workspace write",
+);
+assert.ok(
+  card
+    .querySelector(".bb-thread-hover-card__access")
+    ?.querySelector('[data-icon="FolderEditIcon"]'),
 );
 assert.deepEqual(requestBodies, [
   { threadId: "thr_1" },

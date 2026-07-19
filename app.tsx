@@ -6,6 +6,7 @@ import {
   ClaudeIcon,
   CursorIcon,
   Folder01Icon,
+  FolderEditIcon,
   GitBranchIcon,
   LaptopIcon,
   LinkSquare01Icon,
@@ -13,6 +14,8 @@ import {
   OpenAiIcon,
   PiIcon,
   SourceCodeIcon,
+  SquareUnlock02Icon,
+  ViewIcon,
 } from "./icons";
 import type { ThreadSummary } from "./server";
 import { HOVER_CARD_CSS } from "./styles";
@@ -267,10 +270,27 @@ function permissionMetadata(summary: ThreadSummary): HTMLSpanElement | null {
   const label = permissionLabel(summary.permissionMode);
   if (!label) return null;
 
-  const access = element("span", "bb-thread-hover-card__access", label);
+  const permissionIcon =
+    summary.permissionMode === "full"
+      ? {
+          definition: SquareUnlock02Icon,
+          name: "SquareUnlock02Icon",
+        }
+      : summary.permissionMode === "workspace-write"
+        ? { definition: FolderEditIcon, name: "FolderEditIcon" }
+        : { definition: ViewIcon, name: "ViewIcon" };
+  const access = element("span", "bb-thread-hover-card__access");
   access.dataset.permissionMode = summary.permissionMode!;
   access.setAttribute("aria-label", `Permission: ${label}`);
   access.title = `Permission: ${label}`;
+  access.append(
+    icon(
+      permissionIcon.definition,
+      permissionIcon.name,
+      "bb-thread-hover-card__icon bb-thread-hover-card__permission-icon",
+    ),
+    document.createTextNode(label),
+  );
   return access;
 }
 
