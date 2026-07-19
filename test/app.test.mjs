@@ -1,0 +1,93 @@
+import assert from "node:assert/strict";
+import { JSDOM } from "jsdom";
+
+const dom = new JSDOM(
+  `<body>
+    <div class="group/thread-row">
+      <a data-sidebar-thread-id="thr_1" href="/threads/thr_1">Thread</a>
+    </div>
+  </body>`,
+  { url: "http://localhost" },
+);
+
+const { window } = dom;
+Object.assign(globalThis, {
+  document: window.document,
+  Element: window.Element,
+  Event: window.Event,
+  FocusEvent: window.FocusEvent,
+  HTMLElement: window.HTMLElement,
+  KeyboardEvent: window.KeyboardEvent,
+  Node: window.Node,
+  PointerEvent: window.PointerEvent,
+  window,
+  requestAnimationFrame(callback) {
+    callback(0);
+    return 1;
+  },
+});
+
+let requestBody = null;
+globalThis.fetch = async (_url, init) => {
+  requestBody = JSON.parse(init.body);
+  return new Response(
+    JSON.stringify({
+      ok: true,
+      result: {
+        latestUserMessage: "Create concise hover cards",
+        pullRequest: {
+          kind: "available",
+          number: 42,
+          signal: "Checks passing",
+          state: "open",
+          title: "Thread previews",
+        },
+        repository: {
+          branch: "feature/hover-cards",
+          isGitRepository: true,
+          name: "acme/bb",
+        },
+        status: "active",
+        updatedAt: Date.now(),
+      },
+    }),
+    { headers: { "content-type": "application/json" }, status: 200 },
+  );
+};
+
+globalThis.__bbPluginRuntime = {
+  pluginSdkApp: {
+    definePluginApp(setup) {
+      return { __bbPluginApp: true, setup };
+    },
+  },
+};
+
+await import("../dist/app.js");
+window.document.dispatchEvent(
+  new window.Event("DOMContentLoaded", { bubbles: true }),
+);
+
+const trigger = window.document.querySelector("[data-sidebar-thread-id]");
+assert.ok(trigger);
+trigger.dispatchEvent(new window.FocusEvent("focusin", { bubbles: true }));
+await new Promise((resolve) => setTimeout(resolve, 20));
+
+const card = window.document.getElementById("bb-thread-hover-card");
+assert.ok(card);
+assert.equal(card.hidden, false);
+assert.equal(trigger.getAttribute("aria-describedby"), "bb-thread-hover-card");
+assert.deepEqual(requestBody, { threadId: "thr_1" });
+assert.match(card.textContent, /Working/);
+assert.match(card.textContent, /Create concise hover cards/);
+assert.match(card.textContent, /acme\/bb/);
+assert.match(card.textContent, /#42 · Checks passing/);
+
+window.document.dispatchEvent(
+  new window.KeyboardEvent("keydown", { bubbles: true, key: "Escape" }),
+);
+assert.equal(card.hidden, true);
+assert.equal(trigger.hasAttribute("aria-describedby"), false);
+
+globalThis.__bbThreadHoverCards?.dispose();
+dom.window.close();
