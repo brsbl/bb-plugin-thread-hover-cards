@@ -890,57 +890,55 @@ function renderSummary(card, summary) {
         )
       );
     }
-    const pullRequestLine = element("span", "bb-thread-hover-card__pr");
-    pullRequestLine.dataset.kind = summary.pullRequest.kind;
-    if (summary.pullRequest.kind === "available") {
-      const pullRequestLink = element(
-        "a",
-        "bb-thread-hover-card__pr-link"
-      );
-      pullRequestLink.href = summary.pullRequest.url;
-      pullRequestLink.target = "_blank";
-      pullRequestLink.rel = "noopener noreferrer";
-      pullRequestLink.setAttribute(
-        "aria-label",
-        `Pull request #${summary.pullRequest.number}: ${summary.pullRequest.title}. ${summary.pullRequest.signal}. Opens in a new tab.`
-      );
-      pullRequestLink.title = summary.pullRequest.title;
-      pullRequestLink.append(
-        element(
+    if (summary.pullRequest.kind !== "absent") {
+      const pullRequestLine = element("span", "bb-thread-hover-card__pr");
+      pullRequestLine.dataset.kind = summary.pullRequest.kind;
+      if (summary.pullRequest.kind === "available") {
+        const pullRequestLink = element(
+          "a",
+          "bb-thread-hover-card__pr-link"
+        );
+        pullRequestLink.href = summary.pullRequest.url;
+        pullRequestLink.target = "_blank";
+        pullRequestLink.rel = "noopener noreferrer";
+        pullRequestLink.setAttribute(
+          "aria-label",
+          `Pull request #${summary.pullRequest.number}: ${summary.pullRequest.title}. ${summary.pullRequest.signal}. Opens in a new tab.`
+        );
+        pullRequestLink.title = summary.pullRequest.title;
+        pullRequestLink.append(
+          element(
+            "span",
+            "bb-thread-hover-card__truncate",
+            `#${summary.pullRequest.number}`
+          )
+        );
+        const pullRequestStatus = element(
           "span",
-          "bb-thread-hover-card__truncate",
-          `#${summary.pullRequest.number}`
-        )
-      );
-      const pullRequestStatus = element(
-        "span",
-        "bb-thread-hover-card__pr-status",
-        summary.pullRequest.signal
-      );
-      pullRequestStatus.dataset.tone = pullRequestTone(summary.pullRequest);
-      pullRequestLink.append(
-        pullRequestStatus,
-        icon(
-          LinkSquare01Icon,
-          "LinkSquare01Icon",
-          "bb-thread-hover-card__icon bb-thread-hover-card__link-icon"
-        )
-      );
-      pullRequestLine.append(
-        element("span", "bb-thread-hover-card__meta-label", "PR"),
-        pullRequestLink
-      );
-    } else {
-      pullRequestLine.append(
-        element("span", "bb-thread-hover-card__meta-label", "PR"),
-        element(
-          "span",
-          "",
-          summary.pullRequest.kind === "absent" ? "No PR" : "PR unavailable"
-        )
-      );
+          "bb-thread-hover-card__pr-status",
+          summary.pullRequest.signal
+        );
+        pullRequestStatus.dataset.tone = pullRequestTone(summary.pullRequest);
+        pullRequestLink.append(
+          pullRequestStatus,
+          icon(
+            LinkSquare01Icon,
+            "LinkSquare01Icon",
+            "bb-thread-hover-card__icon bb-thread-hover-card__link-icon"
+          )
+        );
+        pullRequestLine.append(
+          element("span", "bb-thread-hover-card__meta-label", "PR"),
+          pullRequestLink
+        );
+      } else {
+        pullRequestLine.append(
+          element("span", "bb-thread-hover-card__meta-label", "PR"),
+          element("span", "", "PR unavailable")
+        );
+      }
+      repository.append(pullRequestLine);
     }
-    repository.append(pullRequestLine);
   }
   content.push(repository);
   card.replaceChildren(...content);

@@ -36,6 +36,7 @@ globalThis.fetch = async (_url, init) => {
   const request = JSON.parse(init.body);
   requestBodies.push(request);
   const isLocal = request.threadId === "thr_local";
+  const hasNoPullRequest = request.threadId === "thr_no_pr";
   return new Response(
     JSON.stringify({
       ok: true,
@@ -45,7 +46,7 @@ globalThis.fetch = async (_url, init) => {
           ? "Hover cards are ready to use"
           : null,
         latestUserMessage: "Create concise hover cards",
-        pullRequest: isLocal
+        pullRequest: isLocal || hasNoPullRequest
           ? { kind: "absent" }
           : {
               kind: "available",
@@ -250,6 +251,23 @@ assert.equal(card.querySelector(".bb-thread-hover-card__runtime"), null);
 assert.deepEqual(requestBodies, [
   { threadId: "thr_1" },
   { threadId: "thr_local" },
+]);
+
+trigger.blur();
+await new Promise((resolve) => setTimeout(resolve, 140));
+trigger.dataset.sidebarThreadId = "thr_no_pr";
+trigger.focus();
+await new Promise((resolve) => setTimeout(resolve, 20));
+
+assert.equal(card.hidden, false);
+assert.match(card.textContent, /acme\/bb/);
+assert.doesNotMatch(card.textContent, /No PR/);
+assert.equal(card.querySelector(".bb-thread-hover-card__pr"), null);
+assert.equal(card.querySelectorAll(".bb-thread-hover-card__repository").length, 1);
+assert.deepEqual(requestBodies, [
+  { threadId: "thr_1" },
+  { threadId: "thr_local" },
+  { threadId: "thr_no_pr" },
 ]);
 
 const pluginCssLink = window.document.querySelector(
