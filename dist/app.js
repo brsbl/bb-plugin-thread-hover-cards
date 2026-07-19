@@ -15,53 +15,182 @@ var {
   useSettings
 } = mod;
 
-// node_modules/@hugeicons/core-free-icons/dist/esm/Alert02Icon.js
-var Alert02Icon = [
-  ["path", { d: "M13.9248 21H10.0752C5.44476 21 3.12955 21 2.27636 19.4939C1.42317 17.9879 2.60736 15.9914 4.97574 11.9985L6.90057 8.75333C9.17559 4.91778 10.3131 3 12 3C13.6869 3 14.8244 4.91777 17.0994 8.75332L19.0243 11.9985C21.3926 15.9914 22.5768 17.9879 21.7236 19.4939C20.8704 21 18.5552 21 13.9248 21Z", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "0" }],
-  ["path", { d: "M12 9V13", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "1" }],
-  ["path", { d: "M12.125 16.75H12M12.25 16.75C12.25 16.8881 12.1381 17 12 17C11.8619 17 11.75 16.8881 11.75 16.75C11.75 16.6119 11.8619 16.5 12 16.5C12.1381 16.5 12.25 16.6119 12.25 16.75Z", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "2" }]
-];
-
-// node_modules/@hugeicons/core-free-icons/dist/esm/ArrowLeft03Icon.js
+// icons.ts
 var ArrowLeft03Icon = [
-  ["path", { d: "M4 6L4 18", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "0" }],
-  ["path", { d: "M8.00012 12.0005L20.0001 12.0005", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "1" }],
-  ["path", { d: "M12 8C12 8 8.00001 10.946 8 12C7.99999 13.0541 12 16 12 16", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "2" }]
+  [
+    "path",
+    {
+      d: "M4 6L4 18",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeWidth: "1.5",
+      key: "0"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M8.00012 12.0005L20.0001 12.0005",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "1"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M12 8C12 8 8.00001 10.946 8 12C7.99999 13.0541 12 16 12 16",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "2"
+    }
+  ]
 ];
-
-// node_modules/@hugeicons/core-free-icons/dist/esm/CancelCircleIcon.js
-var CancelCircleIcon = [
-  ["path", { d: "M22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12Z", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "0" }],
-  ["path", { d: "M14.9994 15L9 9M9.00064 15L15 9", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "1" }]
-];
-
-// node_modules/@hugeicons/core-free-icons/dist/esm/Folder01Icon.js
 var Folder01Icon = [
-  ["path", { d: "M8 7H16.75C18.8567 7 19.91 7 20.6667 7.50559C20.9943 7.72447 21.2755 8.00572 21.4944 8.33329C22 9.08996 22 10.1433 22 12.25C22 15.7612 22 17.5167 21.1573 18.7779C20.7926 19.3238 20.3238 19.7926 19.7779 20.1573C18.5167 21 16.7612 21 13.25 21H12C7.28595 21 4.92893 21 3.46447 19.5355C2 18.0711 2 15.714 2 11V7.94427C2 6.1278 2 5.21956 2.38032 4.53806C2.65142 4.05227 3.05227 3.65142 3.53806 3.38032C4.21956 3 5.1278 3 6.94427 3C8.10802 3 8.6899 3 9.19926 3.19101C10.3622 3.62712 10.8418 4.68358 11.3666 5.73313L12 7", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "0" }]
+  [
+    "path",
+    {
+      d: "M8 7H16.75C18.8567 7 19.91 7 20.6667 7.50559C20.9943 7.72447 21.2755 8.00572 21.4944 8.33329C22 9.08996 22 10.1433 22 12.25C22 15.7612 22 17.5167 21.1573 18.7779C20.7926 19.3238 20.3238 19.7926 19.7779 20.1573C18.5167 21 16.7612 21 13.25 21H12C7.28595 21 4.92893 21 3.46447 19.5355C2 18.0711 2 15.714 2 11V7.94427C2 6.1278 2 5.21956 2.38032 4.53806C2.65142 4.05227 3.05227 3.65142 3.53806 3.38032C4.21956 3 5.1278 3 6.94427 3C8.10802 3 8.6899 3 9.19926 3.19101C10.3622 3.62712 10.8418 4.68358 11.3666 5.73313L12 7",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeWidth: "1.5",
+      key: "0"
+    }
+  ]
 ];
-
-// node_modules/@hugeicons/core-free-icons/dist/esm/LinkSquare01Icon.js
 var LinkSquare01Icon = [
-  ["path", { d: "M11.1004 3.00208C7.4515 3.00864 5.54073 3.09822 4.31962 4.31931C3.00183 5.63706 3.00183 7.75796 3.00183 11.9997C3.00183 16.2415 3.00183 18.3624 4.31962 19.6801C5.6374 20.9979 7.75836 20.9979 12.0003 20.9979C16.2421 20.9979 18.3631 20.9979 19.6809 19.6801C20.902 18.4591 20.9916 16.5484 20.9982 12.8996", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "0" }],
-  ["path", { d: "M20.4803 3.51751L14.931 9.0515M20.4803 3.51751C19.9863 3.023 16.6587 3.0691 15.9552 3.0791M20.4803 3.51751C20.9742 4.01202 20.9282 7.34329 20.9182 8.04754", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5", key: "1" }]
+  [
+    "path",
+    {
+      d: "M11.1004 3.00208C7.4515 3.00864 5.54073 3.09822 4.31962 4.31931C3.00183 5.63706 3.00183 7.75796 3.00183 11.9997C3.00183 16.2415 3.00183 18.3624 4.31962 19.6801C5.6374 20.9979 7.75836 20.9979 12.0003 20.9979C16.2421 20.9979 18.3631 20.9979 19.6809 19.6801C20.902 18.4591 20.9916 16.5484 20.9982 12.8996",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "0"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M20.4803 3.51751L14.931 9.0515M20.4803 3.51751C19.9863 3.023 16.6587 3.0691 15.9552 3.0791M20.4803 3.51751C20.9742 4.01202 20.9282 7.34329 20.9182 8.04754",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "1"
+    }
+  ]
 ];
-
-// node_modules/@hugeicons/core-free-icons/dist/esm/Loading03Icon.js
 var Loading03Icon = [
-  ["path", { d: "M12 3V6", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "0" }],
-  ["path", { d: "M12 18V21", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "1" }],
-  ["path", { d: "M21 12L18 12", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "2" }],
-  ["path", { d: "M6 12L3 12", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "3" }],
-  ["path", { d: "M18.3635 5.63672L16.2422 7.75804", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "4" }],
-  ["path", { d: "M7.75804 16.2422L5.63672 18.3635", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "5" }],
-  ["path", { d: "M18.3635 18.3635L16.2422 16.2422", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "6" }],
-  ["path", { d: "M7.75804 7.75804L5.63672 5.63672", stroke: "currentColor", strokeLinecap: "round", strokeWidth: "1.5", key: "7" }]
+  [
+    "path",
+    {
+      d: "M12 3V6",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeWidth: "1.5",
+      key: "0"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M12 18V21",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeWidth: "1.5",
+      key: "1"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M21 12L18 12",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeWidth: "1.5",
+      key: "2"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M6 12L3 12",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeWidth: "1.5",
+      key: "3"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M18.3635 5.63672L16.2422 7.75804",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeWidth: "1.5",
+      key: "4"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M7.75804 16.2422L5.63672 18.3635",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeWidth: "1.5",
+      key: "5"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M18.3635 18.3635L16.2422 16.2422",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeWidth: "1.5",
+      key: "6"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M7.75804 7.75804L5.63672 5.63672",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeWidth: "1.5",
+      key: "7"
+    }
+  ]
 ];
-
-// node_modules/@hugeicons/core-free-icons/dist/esm/PauseIcon.js
-var PauseIcon = [
-  ["path", { d: "M4 7C4 5.58579 4 4.87868 4.43934 4.43934C4.87868 4 5.58579 4 7 4C8.41421 4 9.12132 4 9.56066 4.43934C10 4.87868 10 5.58579 10 7V17C10 18.4142 10 19.1213 9.56066 19.5607C9.12132 20 8.41421 20 7 20C5.58579 20 4.87868 20 4.43934 19.5607C4 19.1213 4 18.4142 4 17V7Z", stroke: "currentColor", strokeWidth: "1.5", key: "0" }],
-  ["path", { d: "M14 7C14 5.58579 14 4.87868 14.4393 4.43934C14.8787 4 15.5858 4 17 4C18.4142 4 19.1213 4 19.5607 4.43934C20 4.87868 20 5.58579 20 7V17C20 18.4142 20 19.1213 19.5607 19.5607C19.1213 20 18.4142 20 17 20C15.5858 20 14.8787 20 14.4393 19.5607C14 19.1213 14 18.4142 14 17V7Z", stroke: "currentColor", strokeWidth: "1.5", key: "1" }]
+var CancelCircleIcon = [
+  [
+    "path",
+    {
+      d: "M22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12Z",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "0"
+    }
+  ],
+  [
+    "path",
+    {
+      d: "M14.9994 15L9 9M9.00064 15L15 9",
+      stroke: "currentColor",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      strokeWidth: "1.5",
+      key: "1"
+    }
+  ]
 ];
 
 // styles.ts
@@ -393,16 +522,16 @@ function statusPresentation(status) {
     case "waiting-for-host":
       return {
         animated: false,
-        icon: Alert02Icon,
-        iconName: "Alert02Icon",
+        icon: null,
+        iconName: null,
         label: "Waiting for host",
         tone: "warning"
       };
     case "idle":
       return {
         animated: false,
-        icon: PauseIcon,
-        iconName: "PauseIcon",
+        icon: null,
+        iconName: null,
         label: "Idle",
         tone: "muted"
       };
@@ -480,15 +609,17 @@ function renderSummary(card, summary) {
   const header = element("div", "bb-thread-hover-card__header");
   const status = element("div", "bb-thread-hover-card__status");
   const statusDetails = statusPresentation(summary.status);
-  const statusIcon = icon(
-    statusDetails.icon,
-    statusDetails.iconName,
-    "bb-thread-hover-card__icon bb-thread-hover-card__status-icon"
-  );
-  statusIcon.dataset.tone = statusDetails.tone;
-  if (statusDetails.animated) statusIcon.dataset.animated = "true";
+  if (statusDetails.icon && statusDetails.iconName) {
+    const statusIcon = icon(
+      statusDetails.icon,
+      statusDetails.iconName,
+      "bb-thread-hover-card__icon bb-thread-hover-card__status-icon"
+    );
+    statusIcon.dataset.tone = statusDetails.tone;
+    if (statusDetails.animated) statusIcon.dataset.animated = "true";
+    status.append(statusIcon);
+  }
   status.append(
-    statusIcon,
     element("span", "bb-thread-hover-card__status-label", statusDetails.label)
   );
   header.append(

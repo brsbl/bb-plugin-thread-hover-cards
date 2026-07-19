@@ -1,13 +1,11 @@
 import { definePluginApp } from "@bb/plugin-sdk/app";
 import {
-  Alert02Icon,
   ArrowLeft03Icon,
   CancelCircleIcon,
   Folder01Icon,
   LinkSquare01Icon,
   Loading03Icon,
-  PauseIcon,
-} from "@hugeicons/core-free-icons";
+} from "./icons";
 import type { ThreadSummary } from "./server";
 import { HOVER_CARD_CSS } from "./styles";
 
@@ -37,12 +35,8 @@ type HugeiconDefinition = readonly (
 
 interface StatusPresentation {
   animated: boolean;
-  icon: HugeiconDefinition;
-  iconName:
-    | "Alert02Icon"
-    | "CancelCircleIcon"
-    | "Loading03Icon"
-    | "PauseIcon";
+  icon: HugeiconDefinition | null;
+  iconName: "CancelCircleIcon" | "Loading03Icon" | null;
   label: string;
   tone: "danger" | "muted" | "warning" | "working";
 }
@@ -115,16 +109,16 @@ function statusPresentation(
     case "waiting-for-host":
       return {
         animated: false,
-        icon: Alert02Icon,
-        iconName: "Alert02Icon",
+        icon: null,
+        iconName: null,
         label: "Waiting for host",
         tone: "warning",
       };
     case "idle":
       return {
         animated: false,
-        icon: PauseIcon,
-        iconName: "PauseIcon",
+        icon: null,
+        iconName: null,
         label: "Idle",
         tone: "muted",
       };
@@ -233,15 +227,17 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
   const header = element("div", "bb-thread-hover-card__header");
   const status = element("div", "bb-thread-hover-card__status");
   const statusDetails = statusPresentation(summary.status);
-  const statusIcon = icon(
-    statusDetails.icon,
-    statusDetails.iconName,
-    "bb-thread-hover-card__icon bb-thread-hover-card__status-icon",
-  );
-  statusIcon.dataset.tone = statusDetails.tone;
-  if (statusDetails.animated) statusIcon.dataset.animated = "true";
+  if (statusDetails.icon && statusDetails.iconName) {
+    const statusIcon = icon(
+      statusDetails.icon,
+      statusDetails.iconName,
+      "bb-thread-hover-card__icon bb-thread-hover-card__status-icon",
+    );
+    statusIcon.dataset.tone = statusDetails.tone;
+    if (statusDetails.animated) statusIcon.dataset.animated = "true";
+    status.append(statusIcon);
+  }
   status.append(
-    statusIcon,
     element("span", "bb-thread-hover-card__status-label", statusDetails.label),
   );
   header.append(
