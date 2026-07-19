@@ -11,29 +11,17 @@ const logMessages: string[] = [];
 let displayStatus: "active" | "idle" = "active";
 let outlineCalls = 0;
 let assistantPreview = "  Finished   the hover card \n polish.  ";
-let timelineAnchorSeq: number | null = 10;
-let timelineMaxSeq = 20;
 let timelineRows: Array<{
   completedAt: number | null;
   kind: "turn";
   startedAt: number;
-}> = [];
-let threadEvents = [
+}> = [
   {
-    createdAt: 100,
-    data: { providerThreadId: "provider_1" },
-    id: "event_1",
-    scope: { kind: "turn" as const, turnId: "turn_1" },
-    seq: 10,
-    threadId: "thr_1",
-    type: "turn/started" as const,
+    completedAt: null,
+    kind: "turn",
+    startedAt: 100,
   },
 ];
-const eventListInputs: Array<{
-  afterSeq: string;
-  limit: string;
-  threadId: string;
-}> = [];
 
 const fakeBb = {
   log: {
@@ -135,16 +123,6 @@ const fakeBb = {
           serviceTier: "default",
         };
       },
-      events: {
-        async list(input: {
-          afterSeq: string;
-          limit: string;
-          threadId: string;
-        }) {
-          eventListInputs.push(input);
-          return threadEvents;
-        },
-      },
       async get() {
         return {
           environmentId: "env_1",
@@ -161,13 +139,10 @@ const fakeBb = {
             modelContextWindow: 100_000,
             usedTokens: 82_000,
           },
-          maxSeq: timelineMaxSeq,
+          maxSeq: 20,
           rows: timelineRows,
           timelinePage: {
-            olderCursor:
-              timelineAnchorSeq === null
-                ? null
-                : { anchorId: "prompt_1", anchorSeq: timelineAnchorSeq },
+            olderCursor: null,
           },
         };
       },
@@ -211,57 +186,25 @@ assert.equal("permissionMode" in summary.provider, false);
 assert.equal(summary.permissionMode, "full");
 assert.equal("contextWindowUsage" in summary, false);
 assert.equal(outlineCalls, 1);
-assert.deepEqual(eventListInputs, [
-  { afterSeq: "9", limit: "256", threadId: "thr_1" },
-]);
 
-timelineAnchorSeq = 9_000;
-timelineMaxSeq = 10_000;
-threadEvents = [
+timelineRows = [
   {
-    createdAt: 200,
-    data: { providerThreadId: "provider_1" },
-    id: "event_long_turn",
-    scope: { kind: "turn" as const, turnId: "turn_2" },
-    seq: 9_000,
-    threadId: "thr_1",
-    type: "turn/started" as const,
+    completedAt: 180,
+    kind: "turn",
+    startedAt: 100,
+  },
+  {
+    completedAt: null,
+    kind: "turn",
+    startedAt: 200,
   },
 ];
-eventListInputs.length = 0;
 const longTurnSummary = await summaryHandler({ threadId: "thr_1" });
 assert.equal(longTurnSummary.currentTurnStartedAt, 200);
-assert.deepEqual(eventListInputs, [
-  { afterSeq: "8999", limit: "256", threadId: "thr_1" },
-]);
 
-timelineAnchorSeq = null;
-timelineMaxSeq = 12_000;
-threadEvents = [
-  {
-    createdAt: 300,
-    data: { providerThreadId: "provider_1" },
-    id: "event_first_long_turn",
-    scope: { kind: "turn" as const, turnId: "turn_3" },
-    seq: 4,
-    threadId: "thr_1",
-    type: "turn/started" as const,
-  },
-];
-eventListInputs.length = 0;
-const firstTurnSummary = await summaryHandler({ threadId: "thr_1" });
-assert.equal(firstTurnSummary.currentTurnStartedAt, 300);
-assert.deepEqual(eventListInputs, [
-  { afterSeq: "0", limit: "256", threadId: "thr_1" },
-]);
-
-threadEvents = [];
-eventListInputs.length = 0;
+timelineRows = [];
 const missingTurnStartSummary = await summaryHandler({ threadId: "thr_1" });
 assert.equal(missingTurnStartSummary.currentTurnStartedAt, null);
-assert.deepEqual(eventListInputs, [
-  { afterSeq: "0", limit: "256", threadId: "thr_1" },
-]);
 
 displayStatus = "idle";
 timelineRows = [
@@ -269,17 +212,6 @@ timelineRows = [
     completedAt: 220,
     kind: "turn",
     startedAt: 100,
-  },
-];
-threadEvents = [
-  {
-    createdAt: 100,
-    data: { providerThreadId: "provider_1" },
-    id: "event_idle_turn",
-    scope: { kind: "turn" as const, turnId: "turn_idle" },
-    seq: 12_001,
-    threadId: "thr_1",
-    type: "turn/started" as const,
   },
 ];
 const idleSummary = await summaryHandler({ threadId: "thr_1" });
@@ -290,38 +222,21 @@ assert.equal(
   "Finished the hover card\npolish.",
 );
 assert.equal(idleSummary.status, "idle");
-assert.equal(outlineCalls, 5);
+assert.equal(outlineCalls, 4);
 
 assistantPreview = " \n\t ";
-timelineRows = [];
-threadEvents = [
+timelineRows = [
   {
-    createdAt: 300,
-    data: { providerThreadId: "provider_1" },
-    id: "event_idle_turn_fallback",
-    scope: { kind: "turn" as const, turnId: "turn_idle_fallback" },
-    seq: 12_002,
-    threadId: "thr_1",
-    type: "turn/started" as const,
-  },
-  {
-    createdAt: 480,
-    data: {
-      providerThreadId: "provider_1",
-      status: "completed" as const,
-    },
-    id: "event_idle_turn_completed_fallback",
-    scope: { kind: "turn" as const, turnId: "turn_idle_fallback" },
-    seq: 12_003,
-    threadId: "thr_1",
-    type: "turn/completed" as const,
+    completedAt: null,
+    kind: "turn",
+    startedAt: 300,
   },
 ];
 const blankIdleSummary = await summaryHandler({ threadId: "thr_1" });
 assert.equal(blankIdleSummary.latestAssistantMessage, null);
 assert.equal(blankIdleSummary.currentTurnStartedAt, 300);
-assert.equal(blankIdleSummary.currentTurnCompletedAt, 480);
-assert.equal(outlineCalls, 6);
+assert.equal(blankIdleSummary.currentTurnCompletedAt, null);
+assert.equal(outlineCalls, 5);
 assert.deepEqual(logMessages, ["Thread hover cards loaded."]);
 assert.deepEqual(
   markdownPreview(

@@ -1193,7 +1193,7 @@ function refreshRunTime(card) {
     const endedAt = runtime2.dataset.turnEndedAt ? Number(runtime2.dataset.turnEndedAt) : Date.now();
     const value = runTime(timestamp, endedAt);
     runtime2.querySelector("[data-time-value]").textContent = value;
-    runtime2.title = runtime2.dataset.turnEndedAt ? `Total agent time ${value}` : `Run time ${value}`;
+    runtime2.title = `${runtime2.dataset.timeLabel ?? "Run time"} ${value}`;
   }
 }
 function formatModelLabel(value, providerId) {
@@ -1432,10 +1432,10 @@ function renderSummary(card, summary) {
   const runtimeStatus = statusPresentation(summary.status);
   const times = element("div", "bb-thread-hover-card__times");
   const isDone = summary.status === "idle";
-  const hasReliableRuntime = summary.currentTurnStartedAt !== null && (!isDone || summary.currentTurnCompletedAt !== null);
-  if (hasReliableRuntime) {
+  if (summary.currentTurnStartedAt !== null) {
     const runtime2 = element("span", "bb-thread-hover-card__runtime");
     runtime2.dataset.turnStartedAt = String(summary.currentTurnStartedAt);
+    runtime2.dataset.timeLabel = isDone ? "Total agent time" : "Run time";
     if (summary.currentTurnCompletedAt !== null) {
       runtime2.dataset.turnEndedAt = String(summary.currentTurnCompletedAt);
     }
@@ -1459,7 +1459,7 @@ function renderSummary(card, summary) {
       element(
         "span",
         "bb-thread-hover-card__sr-only",
-        isDone ? "Total agent time " : "Run time "
+        `${runtime2.dataset.timeLabel} `
       ),
       runtimeValue
     );

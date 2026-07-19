@@ -41,6 +41,8 @@ globalThis.fetch = async (_url, init) => {
   const hasNoPullRequest = request.threadId === "thr_no_pr";
   const pullRequestUnavailable = request.threadId === "thr_pr_unavailable";
   const isDraftPullRequest = request.threadId === "thr_draft_pr";
+  const isDoneWithoutCompletion =
+    request.threadId === "thr_done_without_completion";
   const now = Date.now();
   const response = new Response(
     JSON.stringify({
@@ -95,7 +97,7 @@ globalThis.fetch = async (_url, init) => {
               name: "acme/bb",
               path: "/workspace/acme/bb",
             },
-        status: isLocal ? "idle" : "active",
+        status: isLocal || isDoneWithoutCompletion ? "idle" : "active",
       },
     }),
     { headers: { "content-type": "application/json" }, status: 200 },
@@ -737,6 +739,30 @@ trigger.dispatchEvent(
   new window.KeyboardEvent("keydown", { bubbles: true, key: "Tab" }),
 );
 assert.equal(window.document.activeElement, reloadedPullRequestLink);
+
+reloadedPullRequestLink.blur();
+await new Promise((resolve) => setTimeout(resolve, 140));
+trigger.dataset.sidebarThreadId = "thr_done_without_completion";
+trigger.focus();
+await new Promise((resolve) => setTimeout(resolve, 80));
+
+assert.equal(
+  reloadedCard.querySelector(".bb-thread-hover-card__runtime [data-time-value]")
+    ?.textContent,
+  "1m",
+);
+assert.equal(
+  reloadedCard.querySelector(".bb-thread-hover-card__runtime")?.title,
+  "Total agent time 1m",
+);
+assert.ok(
+  reloadedCard
+    .querySelector(".bb-thread-hover-card__runtime")
+    ?.querySelector('[data-icon="CheckmarkCircle02Icon"]'),
+);
+assert.deepEqual(requestBodies.at(-1), {
+  threadId: "thr_done_without_completion",
+});
 
 globalThis.__bbThreadHoverCards?.dispose();
 assert.equal(window.document.getElementById("bb-thread-hover-card-styles"), null);

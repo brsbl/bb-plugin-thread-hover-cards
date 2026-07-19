@@ -14614,8 +14614,8 @@ function repositoryName(remoteUrl, fallback) {
 function isRunningStatus(status) {
   return status === "active" || status === "host-reconnecting" || status === "provisioning" || status === "starting" || status === "stopping";
 }
-var TURN_START_WINDOW = 256;
-async function currentTurnTiming(bb, threadId, status) {
+var SUMMARY_LOOKUP_TIMEOUT_MS = 2500;
+async function currentTurnTiming(bb, threadId, status, signal) {
   if (!isRunningStatus(status) && status !== "idle") {
     return { completedAt: null, startedAt: null };
   }
@@ -14623,37 +14623,18 @@ async function currentTurnTiming(bb, threadId, status) {
     bb.sdk.threads.timeline({
       threadId,
       segmentLimit: "1",
+      signal,
       summaryOnly: "true"
     })
   );
   if (!timeline) return { completedAt: null, startedAt: null };
-  const timelineTurn = [...timeline.rows].reverse().find((row) => row.kind === "turn");
-  if (timelineTurn) {
-    return {
-      completedAt: timelineTurn.completedAt,
-      startedAt: timelineTurn.startedAt
-    };
+  for (let index = timeline.rows.length - 1; index >= 0; index -= 1) {
+    const row = timeline.rows[index];
+    if (row?.kind === "turn") {
+      return { completedAt: row.completedAt, startedAt: row.startedAt };
+    }
   }
-  const anchorSeq = timeline.timelinePage.olderCursor?.anchorSeq ?? 1;
-  const events = await safely(
-    bb.sdk.threads.events.list({
-      threadId,
-      afterSeq: String(Math.max(0, anchorSeq - 1)),
-      limit: String(TURN_START_WINDOW)
-    })
-  );
-  const turnStart = events?.find(
-    (event) => event.type === "turn/started" && event.data.parentToolCallId === void 0
-  );
-  const turnId = turnStart?.scope.kind === "turn" ? turnStart.scope.turnId : null;
-  const turnStartSeq = turnStart?.seq ?? null;
-  const turnCompleted = turnId !== null && turnStartSeq !== null ? events?.find(
-    (event) => event.type === "turn/completed" && event.scope.kind === "turn" && event.scope.turnId === turnId && event.seq > turnStartSeq
-  ) : null;
-  return {
-    completedAt: turnCompleted?.createdAt ?? null,
-    startedAt: turnStart?.createdAt ?? null
-  };
+  return { completedAt: null, startedAt: null };
 }
 var PULL_REQUEST_SIGNALS = {
   blocked: "Blocked",
@@ -14671,6 +14652,7 @@ function plugin(bb) {
   bb.rpc.register(rpcContract, {
     async threadSummary({ threadId }) {
       const thread = await bb.sdk.threads.get({ threadId });
+      const signal = AbortSignal.timeout(SUMMARY_LOOKUP_TIMEOUT_MS);
       const [
         project,
         environment,
@@ -14681,36 +14663,44 @@ function plugin(bb) {
         conversationOutline,
         turnTiming
       ] = await Promise.all([
-        safely(bb.sdk.projects.get({ projectId: thread.projectId })),
+        safely(
+          bb.sdk.projects.get({ projectId: thread.projectId, signal })
+        ),
         thread.environmentId ? safely(
           bb.sdk.environments.get({
-            environmentId: thread.environmentId
+            environmentId: thread.environmentId,
+            signal
           })
         ) : Promise.resolve(null),
         thread.environmentId ? safely(
           bb.sdk.environments.pullRequest({
-            environmentId: thread.environmentId
+            environmentId: thread.environmentId,
+            signal
           })
         ) : Promise.resolve(null),
-        safely(bb.sdk.threads.defaultExecutionOptions({ threadId })),
+        safely(
+          bb.sdk.threads.defaultExecutionOptions({ signal, threadId })
+        ),
         safely(
           bb.sdk.providers.list(
-            thread.environmentId ? { environmentId: thread.environmentId } : void 0
+            thread.environmentId ? { environmentId: thread.environmentId, signal } : { signal }
           )
         ),
         safely(
           bb.sdk.providers.models(
             thread.environmentId ? {
               environmentId: thread.environmentId,
-              providerId: thread.providerId
-            } : { providerId: thread.providerId }
+              providerId: thread.providerId,
+              signal
+            } : { providerId: thread.providerId, signal }
           )
         ),
-        safely(bb.sdk.threads.conversationOutline({ threadId })),
+        safely(bb.sdk.threads.conversationOutline({ signal, threadId })),
         currentTurnTiming(
           bb,
           threadId,
-          thread.runtime.displayStatus
+          thread.runtime.displayStatus,
+          signal
         )
       ]);
       const isGitRepository = environment?.isGitRepo ?? project?.gitRemoteUrl != null;
@@ -14733,11 +14723,11 @@ function plugin(bb) {
         pullRequest = { kind: "absent" };
       } else if (pullRequestResult?.outcome === "available") {
         const source = pullRequestResult.pullRequest;
-        const signal = source.attention === "none" ? source.checks.state === "passing" ? "Checks passing" : source.state === "open" ? "Open" : source.state[0].toUpperCase() + source.state.slice(1) : PULL_REQUEST_SIGNALS[source.attention];
+        const signal2 = source.attention === "none" ? source.checks.state === "passing" ? "Checks passing" : source.state === "open" ? "Open" : source.state[0].toUpperCase() + source.state.slice(1) : PULL_REQUEST_SIGNALS[source.attention];
         pullRequest = {
           kind: "available",
           number: source.number,
-          signal,
+          signal: signal2,
           state: source.state,
           title: source.title,
           url: source.url
