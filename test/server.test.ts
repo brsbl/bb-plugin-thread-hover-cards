@@ -36,6 +36,7 @@ const fakeBb = {
             number: 42,
             state: "open",
             title: "Add thread hover cards",
+            url: "https://github.com/acme/bb-plugin-thread-hover-cards/pull/42",
           },
         };
       },
@@ -92,6 +93,7 @@ assert.deepEqual(summary, {
     signal: "Checks failing",
     state: "open",
     title: "Add thread hover cards",
+    url: "https://github.com/acme/bb-plugin-thread-hover-cards/pull/42",
   },
   repository: {
     branch: "feature/hover-cards",

@@ -14544,7 +14544,8 @@ var pullRequestSummarySchema = external_exports.discriminatedUnion("kind", [
     number: external_exports.number().int().positive(),
     signal: external_exports.string(),
     state: external_exports.enum(["closed", "draft", "merged", "open"]),
-    title: external_exports.string()
+    title: external_exports.string(),
+    url: external_exports.string().url()
   }).strict(),
   external_exports.object({ kind: external_exports.literal("absent") }).strict(),
   external_exports.object({ kind: external_exports.literal("unavailable") }).strict()
@@ -14642,7 +14643,8 @@ function plugin(bb) {
           number: source.number,
           signal,
           state: source.state,
-          title: source.title
+          title: source.title,
+          url: source.url
         };
       } else {
         pullRequest = { kind: "unavailable" };

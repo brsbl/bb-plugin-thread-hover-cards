@@ -41,6 +41,7 @@ globalThis.fetch = async (_url, init) => {
           signal: "Checks passing",
           state: "open",
           title: "Thread previews",
+          url: "https://github.com/acme/bb/pull/42",
         },
         repository: {
           branch: "feature/hover-cards",
@@ -70,7 +71,7 @@ window.document.dispatchEvent(
 
 const trigger = window.document.querySelector("[data-sidebar-thread-id]");
 assert.ok(trigger);
-trigger.dispatchEvent(new window.FocusEvent("focusin", { bubbles: true }));
+trigger.focus();
 await new Promise((resolve) => setTimeout(resolve, 20));
 
 const card = window.document.getElementById("bb-thread-hover-card");
@@ -83,11 +84,34 @@ assert.match(card.textContent, /Create concise hover cards/);
 assert.match(card.textContent, /acme\/bb/);
 assert.match(card.textContent, /#42 · Checks passing/);
 
-window.document.dispatchEvent(
+const pullRequestLink = card.querySelector(".bb-thread-hover-card__pr-link");
+assert.ok(pullRequestLink);
+assert.equal(pullRequestLink.href, "https://github.com/acme/bb/pull/42");
+assert.equal(pullRequestLink.target, "_blank");
+
+trigger.dispatchEvent(
+  new window.KeyboardEvent("keydown", { bubbles: true, key: "Tab" }),
+);
+assert.equal(window.document.activeElement, pullRequestLink);
+
+pullRequestLink.dispatchEvent(
+  new window.KeyboardEvent("keydown", {
+    bubbles: true,
+    key: "Tab",
+    shiftKey: true,
+  }),
+);
+assert.equal(window.document.activeElement, trigger);
+
+trigger.dispatchEvent(
+  new window.KeyboardEvent("keydown", { bubbles: true, key: "Tab" }),
+);
+pullRequestLink.dispatchEvent(
   new window.KeyboardEvent("keydown", { bubbles: true, key: "Escape" }),
 );
 assert.equal(card.hidden, true);
 assert.equal(trigger.hasAttribute("aria-describedby"), false);
+assert.equal(window.document.activeElement, trigger);
 
 globalThis.__bbThreadHoverCards?.dispose();
 dom.window.close();

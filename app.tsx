@@ -169,15 +169,36 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
     pullRequestLine.classList.add("bb-thread-hover-card__pr");
     pullRequestLine.dataset.kind = summary.pullRequest.kind;
     if (summary.pullRequest.kind === "available") {
-      pullRequestLine.append(
-        element("span", "bb-thread-hover-card__meta-label", "PR"),
+      const pullRequestLink = element(
+        "a",
+        "bb-thread-hover-card__pr-link",
+      );
+      pullRequestLink.href = summary.pullRequest.url;
+      pullRequestLink.target = "_blank";
+      pullRequestLink.rel = "noopener noreferrer";
+      pullRequestLink.setAttribute(
+        "aria-label",
+        `Pull request #${summary.pullRequest.number}: ${summary.pullRequest.title}. ${summary.pullRequest.signal}. Opens in a new tab.`,
+      );
+      pullRequestLink.title = summary.pullRequest.title;
+      pullRequestLink.append(
         element(
           "span",
           "bb-thread-hover-card__truncate",
           `#${summary.pullRequest.number} · ${summary.pullRequest.signal}`,
         ),
       );
-      pullRequestLine.title = summary.pullRequest.title;
+      const externalMark = element(
+        "span",
+        "bb-thread-hover-card__external-mark",
+        "↗",
+      );
+      externalMark.setAttribute("aria-hidden", "true");
+      pullRequestLink.append(externalMark);
+      pullRequestLine.append(
+        element("span", "bb-thread-hover-card__meta-label", "PR"),
+        pullRequestLink,
+      );
     } else {
       pullRequestLine.textContent =
         summary.pullRequest.kind === "absent"
@@ -356,14 +377,67 @@ function installHoverCards(): HoverCardController {
   }
 
   function onFocusOut(event: FocusEvent): void {
+    if (event.target instanceof Node && card?.contains(event.target)) {
+      if (
+        event.relatedTarget instanceof Node &&
+        (card.contains(event.relatedTarget) ||
+          event.relatedTarget === activeTrigger)
+      ) {
+        return;
+      }
+      scheduleClose();
+      return;
+    }
+
     const trigger = findThreadTrigger(event.target);
     if (!trigger) return;
     if (findThreadTrigger(event.relatedTarget) === trigger) return;
+    if (
+      event.relatedTarget instanceof Node &&
+      card?.contains(event.relatedTarget)
+    ) {
+      return;
+    }
     scheduleClose();
   }
 
   function onKeyDown(event: KeyboardEvent): void {
-    if (event.key === "Escape" && activeTrigger) closeCard();
+    if (!activeTrigger) return;
+
+    const pullRequestLink =
+      card?.querySelector<HTMLAnchorElement>(".bb-thread-hover-card__pr-link") ??
+      null;
+    if (
+      event.key === "Tab" &&
+      !event.shiftKey &&
+      event.target === activeTrigger &&
+      pullRequestLink
+    ) {
+      event.preventDefault();
+      cancelClose();
+      pullRequestLink.focus();
+      return;
+    }
+    if (
+      event.key === "Tab" &&
+      event.shiftKey &&
+      event.target === pullRequestLink
+    ) {
+      event.preventDefault();
+      cancelClose();
+      activeTrigger.focus();
+      return;
+    }
+    if (event.key === "Escape") {
+      const trigger = activeTrigger;
+      const restoreFocus =
+        event.target instanceof Node && card?.contains(event.target);
+      closeCard();
+      if (restoreFocus) {
+        event.preventDefault();
+        trigger.focus();
+      }
+    }
   }
 
   function onClick(event: MouseEvent): void {

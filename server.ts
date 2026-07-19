@@ -20,6 +20,7 @@ const pullRequestSummarySchema = z.discriminatedUnion("kind", [
       signal: z.string(),
       state: z.enum(["closed", "draft", "merged", "open"]),
       title: z.string(),
+      url: z.string().url(),
     })
     .strict(),
   z.object({ kind: z.literal("absent") }).strict(),
@@ -163,6 +164,7 @@ export default function plugin(bb: BbPluginApi): void {
           signal,
           state: source.state,
           title: source.title,
+          url: source.url,
         };
       } else {
         pullRequest = { kind: "unavailable" };

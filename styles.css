@@ -150,6 +150,31 @@
   content: "";
 }
 
+.bb-thread-hover-card__pr-link {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.25rem;
+  color: var(--foreground);
+  outline: none;
+  text-decoration: none;
+}
+
+.bb-thread-hover-card__pr-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.125rem;
+}
+
+.bb-thread-hover-card__pr-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.bb-thread-hover-card__external-mark {
+  flex: none;
+}
+
 .bb-thread-hover-card__loading {
   padding: 0.125rem 0;
 }
