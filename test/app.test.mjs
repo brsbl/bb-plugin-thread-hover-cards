@@ -180,6 +180,10 @@ assert.match(
 );
 assert.match(
   style.textContent,
+  /\.bb-thread-hover-card__access\[data-permission-mode="full"\][\s\S]*?var\(--warning-text, var\(--warning\)\)/,
+);
+assert.match(
+  style.textContent,
   /\.bb-thread-hover-card__pr \{[\s\S]*?flex: none;[\s\S]*?overflow: visible/,
 );
 assert.match(style.textContent, /var\(--success\) 9%, transparent/);
@@ -256,9 +260,10 @@ assert.doesNotMatch(card.textContent, /Latest request/i);
 assert.ok(card.querySelector('[data-icon="Loading03Icon"]'));
 assert.ok(
   card
-    .querySelector(".bb-thread-hover-card__summary")
+    .querySelector(".bb-thread-hover-card__times")
     ?.querySelector('[data-icon="Loading03Icon"]'),
 );
+assert.equal(card.querySelector(".bb-thread-hover-card__status-icon"), null);
 assert.ok(card.querySelector('[data-icon="OpenAiIcon"]'));
 assert.ok(
   card
@@ -323,7 +328,6 @@ assert.deepEqual(
     "bb-thread-hover-card__project",
     "bb-thread-hover-card__branch",
     "bb-thread-hover-card__pr",
-    "bb-thread-hover-card__access",
   ],
 );
 assert.equal(
@@ -333,6 +337,18 @@ assert.equal(
 assert.equal(
   card.querySelector(".bb-thread-hover-card__access")?.getAttribute("aria-label"),
   "Permission: Full access",
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__access")?.dataset.location,
+  "header",
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__access")?.parentElement,
+  card.querySelector(".bb-thread-hover-card__provider-identity"),
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__reasoning")?.nextElementSibling,
+  card.querySelector(".bb-thread-hover-card__access"),
 );
 assert.equal(
   card
@@ -477,6 +493,14 @@ assert.equal(
   "Completed in 2m",
 );
 assert.equal(
+  card.querySelector(".bb-thread-hover-card__runtime")?.parentElement,
+  card.querySelector(".bb-thread-hover-card__times"),
+);
+assert.equal(
+  card.querySelector(".bb-thread-hover-card__times")?.parentElement,
+  card.querySelector(".bb-thread-hover-card__header"),
+);
+assert.equal(
   card
     .querySelector(".bb-thread-hover-card__runtime")
     ?.querySelector('[data-icon="CheckmarkCircle02Icon"]')
@@ -531,12 +555,9 @@ assert.equal(
 );
 assert.equal(
   card.querySelector(".bb-thread-hover-card__access")?.parentElement,
-  card.querySelector(".bb-thread-hover-card__local"),
+  card.querySelector(".bb-thread-hover-card__provider-identity"),
 );
-assert.equal(
-  card.querySelector(".bb-thread-hover-card__status-icon")?.dataset.tone,
-  "success",
-);
+assert.equal(card.querySelector(".bb-thread-hover-card__status-icon"), null);
 assert.deepEqual(requestBodies, [
   { threadId: "thr_1" },
   { threadId: "thr_1" },
@@ -551,7 +572,12 @@ await new Promise((resolve) => setTimeout(resolve, 20));
 
 assert.equal(card.hidden, false);
 assert.match(card.textContent, /acme\/bb/);
-assert.equal(card.querySelector(".bb-thread-hover-card__times"), null);
+assert.ok(
+  card
+    .querySelector(".bb-thread-hover-card__times")
+    ?.querySelector('[data-icon="Loading03Icon"]'),
+);
+assert.equal(card.querySelector(".bb-thread-hover-card__runtime"), null);
 assert.doesNotMatch(card.textContent, /No PR/);
 assert.equal(card.querySelector(".bb-thread-hover-card__summary"), null);
 assert.equal(card.querySelector(".bb-thread-hover-card__pr"), null);

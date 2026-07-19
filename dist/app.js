@@ -478,22 +478,6 @@ var HOVER_CARD_CSS = String.raw`
   color: var(--muted-foreground);
 }
 
-.bb-thread-hover-card__status-icon[data-tone="working"] {
-  color: color-mix(in srgb, var(--muted-foreground) 62%, transparent);
-}
-
-.bb-thread-hover-card__status-icon[data-tone="danger"] {
-  color: var(--destructive);
-}
-
-.bb-thread-hover-card__status-icon[data-tone="warning"] {
-  color: var(--warning-text, var(--warning));
-}
-
-.bb-thread-hover-card__status-icon[data-tone="success"] {
-  color: var(--success);
-}
-
 .bb-thread-hover-card__runtime,
 .bb-thread-hover-card__loading,
 .bb-thread-hover-card__meta-label {
@@ -545,6 +529,14 @@ var HOVER_CARD_CSS = String.raw`
   color: color-mix(in srgb, var(--muted-foreground) 62%, transparent);
 }
 
+.bb-thread-hover-card__time-icon[data-tone="danger"] {
+  color: var(--destructive);
+}
+
+.bb-thread-hover-card__time-icon[data-tone="warning"] {
+  color: var(--warning-text, var(--warning));
+}
+
 .bb-thread-hover-card__time-icon[data-tone="success"] {
   color: var(--success);
 }
@@ -557,15 +549,8 @@ var HOVER_CARD_CSS = String.raw`
 }
 
 .bb-thread-hover-card__summary {
-  display: flex;
   min-width: 0;
-  align-items: flex-start;
-  gap: 0.4375rem;
   margin-top: 0.625rem;
-}
-
-.bb-thread-hover-card__status-icon {
-  margin-top: 0.125rem;
 }
 
 .bb-thread-hover-card__message {
@@ -686,8 +671,12 @@ var HOVER_CARD_CSS = String.raw`
 
 .bb-thread-hover-card__access {
   flex: none;
-  color: color-mix(in srgb, var(--muted-foreground) 88%, transparent);
+  color: color-mix(in srgb, var(--muted-foreground) 76%, transparent);
   white-space: nowrap;
+}
+
+.bb-thread-hover-card__access[data-permission-mode="full"] {
+  color: var(--warning-text, var(--warning));
 }
 
 .bb-thread-hover-card__pr-link {
@@ -1282,6 +1271,11 @@ function renderSummary(card, summary) {
     reasoning.title = `${reasoningLabel} reasoning`;
     providerIdentity.append(reasoning);
   }
+  const access = permissionMetadata(summary);
+  if (access) {
+    access.dataset.location = "header";
+    providerIdentity.append(access);
+  }
   provider.append(
     providerIcon(summary.provider),
     element(
@@ -1292,15 +1286,15 @@ function renderSummary(card, summary) {
     providerIdentity
   );
   header.append(provider);
+  const runtimeStatus = statusPresentation(summary.status);
+  const times = element("div", "bb-thread-hover-card__times");
   if (summary.currentTurnStartedAt !== null) {
-    const times = element("div", "bb-thread-hover-card__times");
     const runtime2 = element("span", "bb-thread-hover-card__runtime");
     runtime2.dataset.turnStartedAt = String(summary.currentTurnStartedAt);
     const isDone = summary.status === "idle";
     if (isDone) runtime2.dataset.turnEndedAt = String(summary.updatedAt);
     const runtimeValue = element("span", "bb-thread-hover-card__time-value");
     runtimeValue.dataset.timeValue = "";
-    const runtimeStatus = statusPresentation(summary.status);
     const usesThreadStatusIcon = (runtimeStatus.animated || isDone) && runtimeStatus.icon !== null && runtimeStatus.iconName !== null;
     const runtimeIcon = icon(
       usesThreadStatusIcon ? runtimeStatus.icon : AlarmClockIcon,
@@ -1310,6 +1304,9 @@ function renderSummary(card, summary) {
     if (usesThreadStatusIcon) {
       runtimeIcon.dataset.tone = runtimeStatus.tone;
       if (runtimeStatus.animated) runtimeIcon.dataset.animated = "true";
+      runtimeIcon.removeAttribute("aria-hidden");
+      runtimeIcon.setAttribute("aria-label", runtimeStatus.label);
+      runtimeIcon.setAttribute("role", "img");
     }
     runtime2.append(
       runtimeIcon,
@@ -1317,26 +1314,24 @@ function renderSummary(card, summary) {
       runtimeValue
     );
     times.append(runtime2);
-    header.append(times);
+  } else if (runtimeStatus.icon && runtimeStatus.iconName) {
+    const statusIcon = icon(
+      runtimeStatus.icon,
+      runtimeStatus.iconName,
+      "bb-thread-hover-card__icon bb-thread-hover-card__time-icon bb-thread-hover-card__header-status"
+    );
+    statusIcon.dataset.tone = runtimeStatus.tone;
+    if (runtimeStatus.animated) statusIcon.dataset.animated = "true";
+    statusIcon.removeAttribute("aria-hidden");
+    statusIcon.setAttribute("aria-label", runtimeStatus.label);
+    statusIcon.setAttribute("role", "img");
+    times.append(statusIcon);
   }
+  if (times.childElementCount > 0) header.append(times);
   const content = [header];
   const summaryMessage = summary.latestAssistantMessage;
   if (summaryMessage) {
     const request = element("section", "bb-thread-hover-card__summary");
-    const statusDetails = statusPresentation(summary.status);
-    if (statusDetails.icon && statusDetails.iconName) {
-      const statusIcon = icon(
-        statusDetails.icon,
-        statusDetails.iconName,
-        "bb-thread-hover-card__icon bb-thread-hover-card__status-icon"
-      );
-      statusIcon.dataset.tone = statusDetails.tone;
-      if (statusDetails.animated) statusIcon.dataset.animated = "true";
-      statusIcon.removeAttribute("aria-hidden");
-      statusIcon.setAttribute("aria-label", statusDetails.label);
-      statusIcon.setAttribute("role", "img");
-      request.append(statusIcon);
-    }
     request.append(messagePreview(summaryMessage, true));
     content.push(request);
   }
@@ -1415,10 +1410,6 @@ function renderSummary(card, summary) {
       pullRequest.append(pullRequestLink);
       context.append(pullRequest);
     }
-    if (summary.repository.isGitRepository) {
-      const access = permissionMetadata(summary);
-      if (access) context.append(access);
-    }
     content.push(context);
   }
   if (!summary.repository.isGitRepository) {
@@ -1442,8 +1433,6 @@ function renderSummary(card, summary) {
       ),
       localPath
     );
-    const access = permissionMetadata(summary);
-    if (access) local.append(access);
     content.push(local);
   }
   card.replaceChildren(...content);
