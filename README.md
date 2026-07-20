@@ -1,5 +1,7 @@
 # BB Thread Hover Cards
 
+> This standalone repository is retained for history. Active development moved to [`brsbl/bb-plugins`](https://github.com/brsbl/bb-plugins/tree/main/plugins/thread-hover-cards).
+
 Thread Hover Cards is a plugin for [bb](https://getbb.app), the agentic IDE for running and managing coding agents across projects, threads, and environments. It turns the sidebar into a fast status overview: hover or keyboard-focus a thread to see what the agent last said and the context it is working in.
 
 bb plugins are full-trust TypeScript packages that can add app UI, server capabilities, commands, and background services to a running bb instance. This plugin uses bb's existing Plugin SDK and thread-row semantics; it does not require new bb APIs.
@@ -16,7 +18,7 @@ bb plugins are full-trust TypeScript packages that can add app UI, server capabi
 Enable **Plugins** under **Settings → Experiments**, then install the public, git-backed plugin:
 
 ```bash
-bb plugin install git:https://github.com/brsbl/bb-plugin-thread-hover-cards.git@main
+bb plugin install git:https://github.com/brsbl/bb-plugins.git@plugin/thread-hover-cards --yes
 ```
 
 For local development, install the checkout instead:
