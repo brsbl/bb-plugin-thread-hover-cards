@@ -14735,6 +14735,39 @@ function plugin(bb) {
       );
       if (!thread) throw new Error("Thread summary unavailable.");
       const providerScope = thread.environmentId ? `environment:${thread.environmentId}` : "host:default";
+      const projectPromise = stableDescriptors.get(
+        `project:${thread.projectId}`,
+        () => within(
+          safely(
+            bb.sdk.projects.get({ projectId: thread.projectId, signal })
+          ),
+          remainingMs()
+        )
+      );
+      const environmentPromise = thread.environmentId ? within(
+        safely(
+          bb.sdk.environments.get({
+            environmentId: thread.environmentId,
+            signal
+          })
+        ),
+        remainingMs()
+      ) : Promise.resolve(null);
+      const pullRequestPromise = Promise.all([
+        projectPromise,
+        environmentPromise
+      ]).then(([project2, environment2]) => {
+        const isGitRepository2 = environment2?.isGitRepo ?? project2?.gitRemoteUrl != null;
+        return thread.environmentId && isGitRepository2 ? within(
+          safely(
+            bb.sdk.environments.pullRequest({
+              environmentId: thread.environmentId,
+              signal
+            })
+          ),
+          remainingMs()
+        ) : null;
+      });
       const [
         project,
         environment,
@@ -14744,33 +14777,9 @@ function plugin(bb) {
         providerModels,
         threadOutput
       ] = await Promise.all([
-        stableDescriptors.get(
-          `project:${thread.projectId}`,
-          () => within(
-            safely(
-              bb.sdk.projects.get({ projectId: thread.projectId, signal })
-            ),
-            remainingMs()
-          )
-        ),
-        thread.environmentId ? within(
-          safely(
-            bb.sdk.environments.get({
-              environmentId: thread.environmentId,
-              signal
-            })
-          ),
-          remainingMs()
-        ) : Promise.resolve(null),
-        thread.environmentId ? within(
-          safely(
-            bb.sdk.environments.pullRequest({
-              environmentId: thread.environmentId,
-              signal
-            })
-          ),
-          remainingMs()
-        ) : Promise.resolve(null),
+        projectPromise,
+        environmentPromise,
+        pullRequestPromise,
         within(
           safely(
             bb.sdk.threads.defaultExecutionOptions({ signal, threadId })

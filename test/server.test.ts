@@ -19,6 +19,7 @@ let displayStatus: "active" | "idle" = "active";
 let projectId = "proj_1";
 let assistantOutput = "  **Finished**   the hover card \n- polish.  ";
 let threadGetFails = false;
+let environmentIsGitRepository = true;
 let turnStartedAt: number | null = 100;
 let turnCompletedAt: number | null = null;
 let environmentGetCalls = 0;
@@ -60,7 +61,7 @@ const fakeBb = {
         environmentGetCalls += 1;
         return {
           branchName: "feature/hover-cards",
-          isGitRepo: true,
+          isGitRepo: environmentIsGitRepository,
           path: "/workspace/thread-hover-cards",
         };
       },
@@ -323,6 +324,18 @@ assert.deepEqual(blankIdleTiming, {
 assert.equal(projectCalls, 1);
 assert.equal(providerListCalls, 1);
 assert.equal(providerModelCalls, 1);
+
+environmentIsGitRepository = false;
+const pullRequestCallsBeforeLocalSummary = pullRequestCalls;
+const localSummary = await summaryHandler({ threadId: "thr_local" });
+assert.equal(localSummary.repository.isGitRepository, false);
+assert.equal(localSummary.pullRequest.kind, "absent");
+assert.equal(
+  pullRequestCalls,
+  pullRequestCallsBeforeLocalSummary,
+  "skips pull-request lookup for a local workspace",
+);
+environmentIsGitRepository = true;
 
 for (let index = 2; index <= 129; index += 1) {
   projectId = `proj_${index}`;
