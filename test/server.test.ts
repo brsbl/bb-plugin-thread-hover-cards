@@ -337,16 +337,35 @@ assert.equal(
 );
 environmentIsGitRepository = true;
 
+const realDateNow = Date.now;
+const projectCallsBeforeRefresh = projectCalls;
+Date.now = () =>
+  realDateNow() + 60_000 + 1;
+await summaryHandler({ threadId: "thr_stale_descriptor" });
+assert.equal(
+  projectCalls,
+  projectCallsBeforeRefresh + 1,
+  "refreshes an expired descriptor behind the stale value",
+);
+await summaryHandler({ threadId: "thr_refreshed_descriptor" });
+assert.equal(
+  projectCalls,
+  projectCallsBeforeRefresh + 1,
+  "reuses the refreshed descriptor without another load",
+);
+Date.now = realDateNow;
+
+const projectCallsBeforeLruFill = projectCalls;
 for (let index = 2; index <= 129; index += 1) {
   projectId = `proj_${index}`;
   await summaryHandler({ threadId: `thr_${index}` });
 }
-assert.equal(projectCalls, 129);
+assert.equal(projectCalls, projectCallsBeforeLruFill + 128);
 projectId = "proj_1";
 await summaryHandler({ threadId: "thr_1" });
 assert.equal(
   projectCalls,
-  130,
+  projectCallsBeforeLruFill + 129,
   "evicts the least-recently-used stable descriptor after 128 entries",
 );
 threadGetFails = true;

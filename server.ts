@@ -173,18 +173,12 @@ class StableDescriptorCache {
   >();
   private readonly pending = new Map<string, Promise<unknown | null>>();
 
-  async get<T>(key: string, load: () => Promise<T | null>): Promise<T | null> {
-    const now = Date.now();
-    const cached = this.entries.get(key);
-    if (cached && cached.expiresAt > now) {
-      this.entries.delete(key);
-      this.entries.set(key, cached);
-      return cached.value as T;
-    }
-    if (cached) this.entries.delete(key);
-
+  private request<T>(
+    key: string,
+    load: () => Promise<T | null>,
+  ): Promise<T | null> {
     const pending = this.pending.get(key);
-    if (pending) return (await pending) as T | null;
+    if (pending) return pending as Promise<T | null>;
 
     const request = load()
       .then((value) => {
@@ -207,7 +201,21 @@ class StableDescriptorCache {
         if (this.pending.get(key) === request) this.pending.delete(key);
       });
     this.pending.set(key, request);
-    return await request;
+    return request;
+  }
+
+  async get<T>(key: string, load: () => Promise<T | null>): Promise<T | null> {
+    const cached = this.entries.get(key);
+    if (cached) {
+      this.entries.delete(key);
+      this.entries.set(key, cached);
+      if (cached.expiresAt <= Date.now()) {
+        void this.request(key, load).catch(() => undefined);
+      }
+      return cached.value as T;
+    }
+
+    return await this.request(key, load);
   }
 }
 

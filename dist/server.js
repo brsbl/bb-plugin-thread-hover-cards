@@ -14639,17 +14639,9 @@ var STABLE_DESCRIPTOR_CACHE_MAX_ENTRIES = 128;
 var StableDescriptorCache = class {
   entries = /* @__PURE__ */ new Map();
   pending = /* @__PURE__ */ new Map();
-  async get(key, load) {
-    const now = Date.now();
-    const cached2 = this.entries.get(key);
-    if (cached2 && cached2.expiresAt > now) {
-      this.entries.delete(key);
-      this.entries.set(key, cached2);
-      return cached2.value;
-    }
-    if (cached2) this.entries.delete(key);
+  request(key, load) {
     const pending = this.pending.get(key);
-    if (pending) return await pending;
+    if (pending) return pending;
     const request = load().then((value) => {
       if (value !== null) {
         this.entries.set(key, {
@@ -14667,7 +14659,19 @@ var StableDescriptorCache = class {
       if (this.pending.get(key) === request) this.pending.delete(key);
     });
     this.pending.set(key, request);
-    return await request;
+    return request;
+  }
+  async get(key, load) {
+    const cached2 = this.entries.get(key);
+    if (cached2) {
+      this.entries.delete(key);
+      this.entries.set(key, cached2);
+      if (cached2.expiresAt <= Date.now()) {
+        void this.request(key, load).catch(() => void 0);
+      }
+      return cached2.value;
+    }
+    return await this.request(key, load);
   }
 };
 async function currentTurnTiming(bb, threadId, status, signal) {
