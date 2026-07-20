@@ -14593,6 +14593,15 @@ async function safely(promise2) {
     return null;
   }
 }
+async function within(promise2, timeoutMs) {
+  return await new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), timeoutMs);
+    void promise2.then((value) => {
+      clearTimeout(timer);
+      resolve(value);
+    });
+  });
+}
 function normalizeMessage(value) {
   const normalized = value.replace(/\r\n?/g, "\n").split("\n").map((line) => line.replace(/[\t ]+/g, " ").trim()).join("\n").replace(/\n{3,}/g, "\n\n").trim();
   return normalized.length > 1600 ? `${normalized.slice(0, 1599).trimEnd()}\u2026` : normalized;
@@ -14683,44 +14692,68 @@ function plugin(bb) {
         conversationOutline,
         turnTiming
       ] = await Promise.all([
-        safely(
-          bb.sdk.projects.get({ projectId: thread.projectId, signal })
+        within(
+          safely(
+            bb.sdk.projects.get({ projectId: thread.projectId, signal })
+          ),
+          SUMMARY_LOOKUP_TIMEOUT_MS
         ),
-        thread.environmentId ? safely(
-          bb.sdk.environments.get({
-            environmentId: thread.environmentId,
-            signal
-          })
-        ) : Promise.resolve(null),
-        thread.environmentId ? safely(
-          bb.sdk.environments.pullRequest({
-            environmentId: thread.environmentId,
-            signal
-          })
-        ) : Promise.resolve(null),
-        safely(
-          bb.sdk.threads.defaultExecutionOptions({ signal, threadId })
-        ),
-        safely(
-          bb.sdk.providers.list(
-            thread.environmentId ? { environmentId: thread.environmentId, signal } : { signal }
-          )
-        ),
-        safely(
-          bb.sdk.providers.models(
-            thread.environmentId ? {
+        thread.environmentId ? within(
+          safely(
+            bb.sdk.environments.get({
               environmentId: thread.environmentId,
-              providerId: thread.providerId,
               signal
-            } : { providerId: thread.providerId, signal }
-          )
+            })
+          ),
+          SUMMARY_LOOKUP_TIMEOUT_MS
+        ) : Promise.resolve(null),
+        thread.environmentId ? within(
+          safely(
+            bb.sdk.environments.pullRequest({
+              environmentId: thread.environmentId,
+              signal
+            })
+          ),
+          SUMMARY_LOOKUP_TIMEOUT_MS
+        ) : Promise.resolve(null),
+        within(
+          safely(
+            bb.sdk.threads.defaultExecutionOptions({ signal, threadId })
+          ),
+          SUMMARY_LOOKUP_TIMEOUT_MS
         ),
-        safely(bb.sdk.threads.conversationOutline({ signal, threadId })),
-        currentTurnTiming(
-          bb,
-          threadId,
-          thread.runtime.displayStatus,
-          signal
+        within(
+          safely(
+            bb.sdk.providers.list(
+              thread.environmentId ? { environmentId: thread.environmentId, signal } : { signal }
+            )
+          ),
+          SUMMARY_LOOKUP_TIMEOUT_MS
+        ),
+        within(
+          safely(
+            bb.sdk.providers.models(
+              thread.environmentId ? {
+                environmentId: thread.environmentId,
+                providerId: thread.providerId,
+                signal
+              } : { providerId: thread.providerId, signal }
+            )
+          ),
+          SUMMARY_LOOKUP_TIMEOUT_MS
+        ),
+        within(
+          safely(bb.sdk.threads.conversationOutline({ signal, threadId })),
+          SUMMARY_LOOKUP_TIMEOUT_MS
+        ),
+        within(
+          currentTurnTiming(
+            bb,
+            threadId,
+            thread.runtime.displayStatus,
+            signal
+          ),
+          SUMMARY_LOOKUP_TIMEOUT_MS
         )
       ]);
       const isGitRepository = environment?.isGitRepo ?? project?.gitRemoteUrl != null;
@@ -14756,8 +14789,8 @@ function plugin(bb) {
         pullRequest = { kind: "unavailable" };
       }
       return {
-        currentTurnCompletedAt: turnTiming.completedAt,
-        currentTurnStartedAt: turnTiming.startedAt,
+        currentTurnCompletedAt: turnTiming?.completedAt ?? null,
+        currentTurnStartedAt: turnTiming?.startedAt ?? null,
         latestAssistantMessage: normalizedAssistantMessage || null,
         permissionMode: executionOptions?.permissionMode ?? null,
         pullRequest,

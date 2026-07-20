@@ -85,6 +85,19 @@ async function safely<T>(promise: Promise<T>): Promise<T | null> {
   }
 }
 
+async function within<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+): Promise<T | null> {
+  return await new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), timeoutMs);
+    void promise.then((value) => {
+      clearTimeout(timer);
+      resolve(value);
+    });
+  });
+}
+
 function normalizeMessage(value: string): string {
   const normalized = value
     .replace(/\r\n?/g, "\n")
@@ -221,52 +234,76 @@ export default function plugin(bb: BbPluginApi): void {
         turnTiming,
       ] =
         await Promise.all([
-          safely(
-            bb.sdk.projects.get({ projectId: thread.projectId, signal }),
+          within(
+            safely(
+              bb.sdk.projects.get({ projectId: thread.projectId, signal }),
+            ),
+            SUMMARY_LOOKUP_TIMEOUT_MS,
           ),
           thread.environmentId
-            ? safely(
-                bb.sdk.environments.get({
-                  environmentId: thread.environmentId,
-                  signal,
-                }),
+            ? within(
+                safely(
+                  bb.sdk.environments.get({
+                    environmentId: thread.environmentId,
+                    signal,
+                  }),
+                ),
+                SUMMARY_LOOKUP_TIMEOUT_MS,
               )
             : Promise.resolve(null),
           thread.environmentId
-            ? safely(
-                bb.sdk.environments.pullRequest({
-                  environmentId: thread.environmentId,
-                  signal,
-                }),
+            ? within(
+                safely(
+                  bb.sdk.environments.pullRequest({
+                    environmentId: thread.environmentId,
+                    signal,
+                  }),
+                ),
+                SUMMARY_LOOKUP_TIMEOUT_MS,
               )
             : Promise.resolve(null),
-          safely(
-            bb.sdk.threads.defaultExecutionOptions({ signal, threadId }),
-          ),
-          safely(
-            bb.sdk.providers.list(
-              thread.environmentId
-                ? { environmentId: thread.environmentId, signal }
-                : { signal },
+          within(
+            safely(
+              bb.sdk.threads.defaultExecutionOptions({ signal, threadId }),
             ),
+            SUMMARY_LOOKUP_TIMEOUT_MS,
           ),
-          safely(
-            bb.sdk.providers.models(
-              thread.environmentId
-                ? {
-                  environmentId: thread.environmentId,
-                  providerId: thread.providerId,
-                  signal,
-                }
-                : { providerId: thread.providerId, signal },
+          within(
+            safely(
+              bb.sdk.providers.list(
+                thread.environmentId
+                  ? { environmentId: thread.environmentId, signal }
+                  : { signal },
+              ),
             ),
+            SUMMARY_LOOKUP_TIMEOUT_MS,
           ),
-          safely(bb.sdk.threads.conversationOutline({ signal, threadId })),
-          currentTurnTiming(
-            bb,
-            threadId,
-            thread.runtime.displayStatus,
-            signal,
+          within(
+            safely(
+              bb.sdk.providers.models(
+                thread.environmentId
+                  ? {
+                      environmentId: thread.environmentId,
+                      providerId: thread.providerId,
+                      signal,
+                    }
+                  : { providerId: thread.providerId, signal },
+              ),
+            ),
+            SUMMARY_LOOKUP_TIMEOUT_MS,
+          ),
+          within(
+            safely(bb.sdk.threads.conversationOutline({ signal, threadId })),
+            SUMMARY_LOOKUP_TIMEOUT_MS,
+          ),
+          within(
+            currentTurnTiming(
+              bb,
+              threadId,
+              thread.runtime.displayStatus,
+              signal,
+            ),
+            SUMMARY_LOOKUP_TIMEOUT_MS,
           ),
         ]);
 
@@ -316,8 +353,8 @@ export default function plugin(bb: BbPluginApi): void {
       }
 
       return {
-        currentTurnCompletedAt: turnTiming.completedAt,
-        currentTurnStartedAt: turnTiming.startedAt,
+        currentTurnCompletedAt: turnTiming?.completedAt ?? null,
+        currentTurnStartedAt: turnTiming?.startedAt ?? null,
         latestAssistantMessage: normalizedAssistantMessage || null,
         permissionMode: executionOptions?.permissionMode ?? null,
         pullRequest,
