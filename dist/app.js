@@ -1382,6 +1382,23 @@ async function fetchSummary(threadId) {
   }
   return envelope.result;
 }
+async function fetchTiming(threadId) {
+  const response = await fetch(
+    "/api/v1/plugins/thread-hover-cards/rpc/threadTiming",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ threadId })
+    }
+  );
+  const envelope = await response.json();
+  if (!response.ok || !envelope.ok) {
+    throw new Error(
+      envelope.ok ? "Thread timing request failed." : envelope.error?.message
+    );
+  }
+  return envelope.result;
+}
 function renderLoading(card) {
   card.replaceChildren(
     element(
@@ -1613,6 +1630,7 @@ function installHoverCards() {
   let forwardTabTarget = null;
   const cache = /* @__PURE__ */ new Map();
   const pending = /* @__PURE__ */ new Map();
+  const timingPending = /* @__PURE__ */ new Map();
   const style = element("style", "");
   style.id = STYLE_ID;
   style.textContent = HOVER_CARD_CSS;
@@ -1661,7 +1679,11 @@ function installHoverCards() {
   }
   function cacheSummary(threadId, summary) {
     cache.delete(threadId);
-    cache.set(threadId, { fetchedAt: Date.now(), summary });
+    cache.set(threadId, {
+      fetchedAt: Date.now(),
+      summary,
+      timingFetchedAt: null
+    });
     while (cache.size > CACHE_MAX_ENTRIES) {
       const oldestThreadId = cache.keys().next().value;
       if (oldestThreadId === void 0) break;
@@ -1678,10 +1700,51 @@ function installHoverCards() {
     pending.set(threadId, request);
     return request;
   }
+  function requestTiming(threadId) {
+    const existing = timingPending.get(threadId);
+    if (existing) return existing;
+    const request = fetchTiming(threadId).finally(
+      () => timingPending.delete(threadId)
+    );
+    timingPending.set(threadId, request);
+    return request;
+  }
   function prefetchSummary(threadId) {
     const cached = cachedSummary(threadId);
     if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) return;
     void requestSummary(threadId).catch(() => void 0);
+  }
+  function refreshTiming(threadId, generation, hoverCard) {
+    const cached = cache.get(threadId);
+    if (cached?.timingFetchedAt !== null && cached?.timingFetchedAt !== void 0 && Date.now() - cached.timingFetchedAt < CACHE_TTL_MS) {
+      return;
+    }
+    void requestTiming(threadId).then((timing) => {
+      const current = cache.get(threadId);
+      if (!current) return;
+      const summary = {
+        ...current.summary,
+        ...timing
+      };
+      cache.delete(threadId);
+      cache.set(threadId, {
+        ...current,
+        summary,
+        timingFetchedAt: Date.now()
+      });
+      if (disposed || generation !== requestGeneration || activeThreadId !== threadId || !resolveActiveTrigger()) {
+        return;
+      }
+      const focusWasInsideCard = document.activeElement instanceof Node && hoverCard.contains(document.activeElement);
+      renderSummary(hoverCard, summary);
+      if (focusWasInsideCard) {
+        const replacementPullRequestLink = hoverCard.querySelector(
+          ".bb-thread-hover-card__pr-link"
+        );
+        (replacementPullRequestLink ?? resolveActiveTrigger())?.focus();
+      }
+      requestAnimationFrame(positionCard);
+    }).catch(() => void 0);
   }
   function resolveActiveTrigger() {
     if (!activeThreadId) return null;
@@ -1744,7 +1807,10 @@ function installHoverCards() {
     if (cached) renderSummary(hoverCard, cached.summary);
     else renderLoading(hoverCard);
     requestAnimationFrame(positionCard);
-    if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) return;
+    if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+      refreshTiming(threadId, generation, hoverCard);
+      return;
+    }
     void requestSummary(threadId).then((summary) => {
       if (disposed || generation !== requestGeneration || activeThreadId !== threadId || !resolveActiveTrigger()) {
         return;
@@ -1758,6 +1824,7 @@ function installHoverCards() {
         (replacementPullRequestLink ?? resolveActiveTrigger())?.focus();
       }
       requestAnimationFrame(positionCard);
+      refreshTiming(threadId, generation, hoverCard);
     }).catch(() => {
       if (!cached && !disposed && generation === requestGeneration && activeThreadId === threadId && resolveActiveTrigger()) {
         renderError(hoverCard);

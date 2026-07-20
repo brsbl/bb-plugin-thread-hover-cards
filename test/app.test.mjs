@@ -34,28 +34,51 @@ Object.assign(globalThis, {
 });
 
 const requestBodies = [];
+const timingRequestBodies = [];
 let delayedRefresh = null;
 let delayNextRefreshFor = null;
-globalThis.fetch = async (_url, init) => {
+globalThis.fetch = async (url, init) => {
   const request = JSON.parse(init.body);
-  requestBodies.push(request);
   const isLocal = request.threadId === "thr_local";
   const hasNoPullRequest = request.threadId === "thr_no_pr";
   const pullRequestUnavailable = request.threadId === "thr_pr_unavailable";
   const isDraftPullRequest = request.threadId === "thr_draft_pr";
   const isDoneWithoutCompletion =
     request.threadId === "thr_done_without_completion";
+  const isStateRace = request.threadId === "thr_state_race";
   const now = Date.now();
+  if (String(url).endsWith("/threadTiming")) {
+    timingRequestBodies.push(request);
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        result: {
+          currentTurnCompletedAt:
+            isLocal || isStateRace ? now - 65_000 : null,
+          currentTurnStartedAt: isLocal
+            ? now - 185_000
+            : isStateRace
+              ? now - 125_000
+              : hasNoPullRequest
+                ? null
+                : now - 65_000,
+          status:
+            isLocal || isDoneWithoutCompletion || isStateRace
+              ? "idle"
+              : "active",
+        },
+      }),
+      { headers: { "content-type": "application/json" }, status: 200 },
+    );
+  }
+
+  requestBodies.push(request);
   const response = new Response(
     JSON.stringify({
       ok: true,
       result: {
-        currentTurnCompletedAt: isLocal ? now - 65_000 : null,
-        currentTurnStartedAt: isLocal
-          ? now - 185_000
-          : hasNoPullRequest
-            ? null
-            : now - 65_000,
+        currentTurnCompletedAt: null,
+        currentTurnStartedAt: null,
         latestAssistantMessage: isLocal
           ? "**Done**—hover cards are *ready* for foo_bar_baz, \\_literal\\_, and __tests__ with `Cmd+R`.\n\n## Canary\nIgnore this secondary section.\n\n| Work | PR | Status |\n| --- | --- | --- |\n| Hover cards | #42 | Ready |"
           : hasNoPullRequest
@@ -227,6 +250,11 @@ assert.deepEqual(
   requestBodies,
   [{ threadId: "thr_1" }],
   "prefetches after hover intent before the card opens",
+);
+assert.deepEqual(
+  timingRequestBodies,
+  [],
+  "defers expensive timing until the summary can render",
 );
 await new Promise((resolve) => setTimeout(resolve, 110));
 
@@ -864,6 +892,27 @@ assert.deepEqual(requestBodies.at(-1), {
   threadId: "thr_done_without_completion",
 });
 
+trigger.blur();
+await new Promise((resolve) => setTimeout(resolve, 140));
+trigger.dataset.sidebarThreadId = "thr_state_race";
+trigger.focus();
+await new Promise((resolve) => setTimeout(resolve, 80));
+
+assert.equal(
+  reloadedCard.querySelector(".bb-thread-hover-card__runtime")?.title,
+  "Total agent time 1m",
+);
+assert.ok(
+  reloadedCard
+    .querySelector(".bb-thread-hover-card__runtime")
+    ?.querySelector('[data-icon="CheckmarkCircle02Icon"]'),
+);
+assert.equal(
+  reloadedCard.querySelector(".bb-thread-hover-card__summary")?.dataset.working,
+  undefined,
+  "timing hydration updates status with its timestamps",
+);
+
 const lruTriggers = [];
 for (const threadId of [
   "thr_lru_old",
@@ -890,10 +939,14 @@ await new Promise((resolve) => setTimeout(resolve, 20));
 const oldRequestsBefore = requestBodies.filter(
   ({ threadId }) => threadId === "thr_lru_old",
 ).length;
+
+threadRowSuccessor.focus();
+lruTriggers[1].focus();
+await new Promise((resolve) => setTimeout(resolve, 20));
 const recentRequestsBefore = requestBodies.filter(
   ({ threadId }) => threadId === "thr_lru_recent",
 ).length;
-
+threadRowSuccessor.focus();
 lruTriggers[1].focus();
 await new Promise((resolve) => setTimeout(resolve, 20));
 assert.equal(

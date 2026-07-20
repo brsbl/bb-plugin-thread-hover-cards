@@ -17,7 +17,7 @@ import {
   SquareUnlock02Icon,
   ViewIcon,
 } from "./icons";
-import type { ThreadSummary } from "./server";
+import type { ThreadSummary, ThreadTiming } from "./server";
 import { HOVER_CARD_CSS } from "./styles";
 import { markdownPreview } from "./markdown-preview";
 
@@ -45,6 +45,7 @@ const TABBABLE_SELECTOR = [
 interface CachedSummary {
   fetchedAt: number;
   summary: ThreadSummary;
+  timingFetchedAt: number | null;
 }
 
 interface HoverCardController {
@@ -475,6 +476,27 @@ async function fetchSummary(threadId: string): Promise<ThreadSummary> {
   return envelope.result;
 }
 
+async function fetchTiming(threadId: string): Promise<ThreadTiming> {
+  const response = await fetch(
+    "/api/v1/plugins/thread-hover-cards/rpc/threadTiming",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ threadId }),
+    },
+  );
+  const envelope = (await response.json()) as
+    | { ok: true; result: ThreadTiming }
+    | { ok: false; error?: { message?: string } };
+
+  if (!response.ok || !envelope.ok) {
+    throw new Error(
+      envelope.ok ? "Thread timing request failed." : envelope.error?.message,
+    );
+  }
+  return envelope.result;
+}
+
 function renderLoading(card: HTMLElement): void {
   card.replaceChildren(
     element(
@@ -733,6 +755,7 @@ function installHoverCards(): HoverCardController {
   let forwardTabTarget: HTMLElement | null = null;
   const cache = new Map<string, CachedSummary>();
   const pending = new Map<string, Promise<ThreadSummary>>();
+  const timingPending = new Map<string, Promise<ThreadTiming>>();
   const style = element("style", "");
   style.id = STYLE_ID;
   style.textContent = HOVER_CARD_CSS;
@@ -790,7 +813,11 @@ function installHoverCards(): HoverCardController {
 
   function cacheSummary(threadId: string, summary: ThreadSummary): void {
     cache.delete(threadId);
-    cache.set(threadId, { fetchedAt: Date.now(), summary });
+    cache.set(threadId, {
+      fetchedAt: Date.now(),
+      summary,
+      timingFetchedAt: null,
+    });
     while (cache.size > CACHE_MAX_ENTRIES) {
       const oldestThreadId = cache.keys().next().value;
       if (oldestThreadId === undefined) break;
@@ -812,10 +839,74 @@ function installHoverCards(): HoverCardController {
     return request;
   }
 
+  function requestTiming(threadId: string): Promise<ThreadTiming> {
+    const existing = timingPending.get(threadId);
+    if (existing) return existing;
+
+    const request = fetchTiming(threadId).finally(() =>
+      timingPending.delete(threadId),
+    );
+    timingPending.set(threadId, request);
+    return request;
+  }
+
   function prefetchSummary(threadId: string): void {
     const cached = cachedSummary(threadId);
     if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) return;
     void requestSummary(threadId).catch(() => undefined);
+  }
+
+  function refreshTiming(
+    threadId: string,
+    generation: number,
+    hoverCard: HTMLDivElement,
+  ): void {
+    const cached = cache.get(threadId);
+    if (
+      cached?.timingFetchedAt !== null &&
+      cached?.timingFetchedAt !== undefined &&
+      Date.now() - cached.timingFetchedAt < CACHE_TTL_MS
+    ) {
+      return;
+    }
+
+    void requestTiming(threadId)
+      .then((timing) => {
+        const current = cache.get(threadId);
+        if (!current) return;
+        const summary = {
+          ...current.summary,
+          ...timing,
+        };
+        cache.delete(threadId);
+        cache.set(threadId, {
+          ...current,
+          summary,
+          timingFetchedAt: Date.now(),
+        });
+        if (
+          disposed ||
+          generation !== requestGeneration ||
+          activeThreadId !== threadId ||
+          !resolveActiveTrigger()
+        ) {
+          return;
+        }
+
+        const focusWasInsideCard =
+          document.activeElement instanceof Node &&
+          hoverCard.contains(document.activeElement);
+        renderSummary(hoverCard, summary);
+        if (focusWasInsideCard) {
+          const replacementPullRequestLink =
+            hoverCard.querySelector<HTMLAnchorElement>(
+              ".bb-thread-hover-card__pr-link",
+            );
+          (replacementPullRequestLink ?? resolveActiveTrigger())?.focus();
+        }
+        requestAnimationFrame(positionCard);
+      })
+      .catch(() => undefined);
   }
 
   function resolveActiveTrigger(): HTMLAnchorElement | null {
@@ -909,7 +1000,10 @@ function installHoverCards(): HoverCardController {
     else renderLoading(hoverCard);
     requestAnimationFrame(positionCard);
 
-    if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) return;
+    if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+      refreshTiming(threadId, generation, hoverCard);
+      return;
+    }
 
     void requestSummary(threadId)
       .then((summary) => {
@@ -933,6 +1027,7 @@ function installHoverCards(): HoverCardController {
           (replacementPullRequestLink ?? resolveActiveTrigger())?.focus();
         }
         requestAnimationFrame(positionCard);
+        refreshTiming(threadId, generation, hoverCard);
       })
       .catch(() => {
         if (

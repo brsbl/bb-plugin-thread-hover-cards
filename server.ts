@@ -70,10 +70,24 @@ export const threadSummarySchema = z
 
 export type ThreadSummary = z.infer<typeof threadSummarySchema>;
 
+export const threadTimingSchema = z
+  .object({
+    currentTurnCompletedAt: z.number().nullable(),
+    currentTurnStartedAt: z.number().nullable(),
+    status: displayStatusSchema,
+  })
+  .strict();
+
+export type ThreadTiming = z.infer<typeof threadTimingSchema>;
+
 export const rpcContract = defineRpcContract({
   threadSummary: {
     input: z.object({ threadId: z.string().min(1) }).strict(),
     output: threadSummarySchema,
+  },
+  threadTiming: {
+    input: z.object({ threadId: z.string().min(1) }).strict(),
+    output: threadTimingSchema,
   },
 });
 
@@ -291,7 +305,6 @@ export default function plugin(bb: BbPluginApi): void {
         providers,
         providerModels,
         threadOutput,
-        turnTiming,
       ] =
         await Promise.all([
           stableDescriptors.get(`project:${thread.projectId}`, () =>
@@ -364,15 +377,6 @@ export default function plugin(bb: BbPluginApi): void {
             safely(bb.sdk.threads.output({ signal, threadId })),
             remainingMs(),
           ),
-          within(
-            currentTurnTiming(
-              bb,
-              threadId,
-              thread.runtime.displayStatus,
-              signal,
-            ),
-            remainingMs(),
-          ),
         ]);
 
       const isGitRepository =
@@ -418,8 +422,8 @@ export default function plugin(bb: BbPluginApi): void {
       }
 
       return {
-        currentTurnCompletedAt: turnTiming?.completedAt ?? null,
-        currentTurnStartedAt: turnTiming?.startedAt ?? null,
+        currentTurnCompletedAt: null,
+        currentTurnStartedAt: null,
         latestAssistantMessage: normalizedAssistantMessage || null,
         permissionMode: executionOptions?.permissionMode ?? null,
         pullRequest,
@@ -440,6 +444,32 @@ export default function plugin(bb: BbPluginApi): void {
           ),
           path: environment?.path ?? null,
         },
+        status: thread.runtime.displayStatus,
+      };
+    },
+    async threadTiming({ threadId }) {
+      const deadlineAt = Date.now() + SUMMARY_LOOKUP_TIMEOUT_MS;
+      const remainingMs = (): number =>
+        Math.max(1, deadlineAt - Date.now());
+      const signal = AbortSignal.timeout(SUMMARY_LOOKUP_TIMEOUT_MS);
+      const thread = await within(
+        safely(bb.sdk.threads.get({ signal, threadId })),
+        remainingMs(),
+      );
+      if (!thread) throw new Error("Thread timing unavailable.");
+
+      const timing = await within(
+        currentTurnTiming(
+          bb,
+          threadId,
+          thread.runtime.displayStatus,
+          signal,
+        ),
+        remainingMs(),
+      );
+      return {
+        currentTurnCompletedAt: timing?.completedAt ?? null,
+        currentTurnStartedAt: timing?.startedAt ?? null,
         status: thread.runtime.displayStatus,
       };
     },

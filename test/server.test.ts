@@ -1,12 +1,19 @@
 import assert from "node:assert/strict";
 import { markdownPreview } from "../markdown-preview";
-import plugin, { type ThreadSummary } from "../server";
+import plugin, {
+  type ThreadSummary,
+  type ThreadTiming,
+} from "../server";
 
 type SummaryHandler = (input: {
   threadId: string;
 }) => Promise<ThreadSummary>;
+type TimingHandler = (input: {
+  threadId: string;
+}) => Promise<ThreadTiming>;
 
 let summaryHandler: SummaryHandler | undefined;
+let timingHandler: TimingHandler | undefined;
 const logMessages: string[] = [];
 let displayStatus: "active" | "idle" = "active";
 let projectId = "proj_1";
@@ -38,9 +45,13 @@ const fakeBb = {
   rpc: {
     register(
       _contract: unknown,
-      handlers: { threadSummary: SummaryHandler },
+      handlers: {
+        threadSummary: SummaryHandler;
+        threadTiming: TimingHandler;
+      },
     ) {
       summaryHandler = handlers.threadSummary;
+      timingHandler = handlers.threadTiming;
     },
   },
   sdk: {
@@ -191,11 +202,12 @@ const fakeBb = {
 
 plugin(fakeBb as never);
 assert.ok(summaryHandler, "registers the threadSummary RPC handler");
+assert.ok(timingHandler, "registers the threadTiming RPC handler");
 
 const summary = await summaryHandler({ threadId: "thr_1" });
 assert.deepEqual(summary, {
   currentTurnCompletedAt: null,
-  currentTurnStartedAt: 100,
+  currentTurnStartedAt: null,
   latestAssistantMessage: "**Finished** the hover card\n- polish.",
   permissionMode: "full",
   pullRequest: {
@@ -233,6 +245,16 @@ assert.equal(providerModelCalls, 1);
 assert.equal(environmentGetCalls, 1);
 assert.equal(pullRequestCalls, 1);
 assert.equal(executionOptionsCalls, 1);
+assert.deepEqual(eventWaitInputs, []);
+
+const timing = await timingHandler({ threadId: "thr_1" });
+assert.deepEqual(timing, {
+  currentTurnCompletedAt: null,
+  currentTurnStartedAt: 100,
+  status: "active",
+});
+assert.equal(threadGetSignals.length, 2);
+assert.ok(threadGetSignals[1] instanceof AbortSignal);
 assert.deepEqual(eventWaitInputs, [
   {
     afterSeq: "9",
@@ -244,7 +266,7 @@ assert.deepEqual(eventWaitInputs, [
 
 turnStartedAt = 200;
 const longTurnSummary = await summaryHandler({ threadId: "thr_1" });
-assert.equal(longTurnSummary.currentTurnStartedAt, 200);
+assert.equal(longTurnSummary.currentTurnStartedAt, null);
 assert.equal(projectCalls, 1);
 assert.equal(providerListCalls, 1);
 assert.equal(providerModelCalls, 1);
@@ -252,18 +274,24 @@ assert.equal(environmentGetCalls, 2);
 assert.equal(pullRequestCalls, 2);
 assert.equal(executionOptionsCalls, 2);
 assert.equal(outputCalls, 2);
+const longTurnTiming = await timingHandler({ threadId: "thr_1" });
+assert.equal(longTurnTiming.currentTurnStartedAt, 200);
+assert.equal(longTurnTiming.status, "active");
 
 turnStartedAt = null;
 const missingTurnStartSummary = await summaryHandler({ threadId: "thr_1" });
 assert.equal(missingTurnStartSummary.currentTurnStartedAt, null);
+const missingTurnStartTiming = await timingHandler({ threadId: "thr_1" });
+assert.equal(missingTurnStartTiming.currentTurnStartedAt, null);
+assert.equal(missingTurnStartTiming.status, "active");
 
 displayStatus = "idle";
 turnStartedAt = 100;
 turnCompletedAt = 220;
 eventWaitInputs.length = 0;
 const idleSummary = await summaryHandler({ threadId: "thr_1" });
-assert.equal(idleSummary.currentTurnStartedAt, 100);
-assert.equal(idleSummary.currentTurnCompletedAt, 220);
+assert.equal(idleSummary.currentTurnStartedAt, null);
+assert.equal(idleSummary.currentTurnCompletedAt, null);
 assert.equal(
   idleSummary.latestAssistantMessage,
   "**Finished** the hover card\n- polish.",
@@ -271,15 +299,27 @@ assert.equal(
 assert.equal(idleSummary.status, "idle");
 assert.equal(outputCalls, 4);
 assert.deepEqual(eventWaitInputs, []);
+const idleTiming = await timingHandler({ threadId: "thr_1" });
+assert.deepEqual(idleTiming, {
+  currentTurnCompletedAt: 220,
+  currentTurnStartedAt: 100,
+  status: "idle",
+});
 
 assistantOutput = " \n\t ";
 turnStartedAt = 300;
 turnCompletedAt = null;
 const blankIdleSummary = await summaryHandler({ threadId: "thr_1" });
 assert.equal(blankIdleSummary.latestAssistantMessage, null);
-assert.equal(blankIdleSummary.currentTurnStartedAt, 300);
+assert.equal(blankIdleSummary.currentTurnStartedAt, null);
 assert.equal(blankIdleSummary.currentTurnCompletedAt, null);
 assert.equal(outputCalls, 5);
+const blankIdleTiming = await timingHandler({ threadId: "thr_1" });
+assert.deepEqual(blankIdleTiming, {
+  currentTurnCompletedAt: null,
+  currentTurnStartedAt: 300,
+  status: "idle",
+});
 assert.equal(projectCalls, 1);
 assert.equal(providerListCalls, 1);
 assert.equal(providerModelCalls, 1);

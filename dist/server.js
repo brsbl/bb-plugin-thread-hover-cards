@@ -14580,10 +14580,19 @@ var threadSummarySchema = external_exports.object({
   }).strict(),
   status: displayStatusSchema
 }).strict();
+var threadTimingSchema = external_exports.object({
+  currentTurnCompletedAt: external_exports.number().nullable(),
+  currentTurnStartedAt: external_exports.number().nullable(),
+  status: displayStatusSchema
+}).strict();
 var rpcContract = defineRpcContract({
   threadSummary: {
     input: external_exports.object({ threadId: external_exports.string().min(1) }).strict(),
     output: threadSummarySchema
+  },
+  threadTiming: {
+    input: external_exports.object({ threadId: external_exports.string().min(1) }).strict(),
+    output: threadTimingSchema
   }
 });
 async function safely(promise2) {
@@ -14733,8 +14742,7 @@ function plugin(bb) {
         executionOptions,
         providers,
         providerModels,
-        threadOutput,
-        turnTiming
+        threadOutput
       ] = await Promise.all([
         stableDescriptors.get(
           `project:${thread.projectId}`,
@@ -14798,15 +14806,6 @@ function plugin(bb) {
         within(
           safely(bb.sdk.threads.output({ signal, threadId })),
           remainingMs()
-        ),
-        within(
-          currentTurnTiming(
-            bb,
-            threadId,
-            thread.runtime.displayStatus,
-            signal
-          ),
-          remainingMs()
         )
       ]);
       const isGitRepository = environment?.isGitRepo ?? project?.gitRemoteUrl != null;
@@ -14841,8 +14840,8 @@ function plugin(bb) {
         pullRequest = { kind: "unavailable" };
       }
       return {
-        currentTurnCompletedAt: turnTiming?.completedAt ?? null,
-        currentTurnStartedAt: turnTiming?.startedAt ?? null,
+        currentTurnCompletedAt: null,
+        currentTurnStartedAt: null,
         latestAssistantMessage: normalizedAssistantMessage || null,
         permissionMode: executionOptions?.permissionMode ?? null,
         pullRequest,
@@ -14864,6 +14863,30 @@ function plugin(bb) {
         },
         status: thread.runtime.displayStatus
       };
+    },
+    async threadTiming({ threadId }) {
+      const deadlineAt = Date.now() + SUMMARY_LOOKUP_TIMEOUT_MS;
+      const remainingMs = () => Math.max(1, deadlineAt - Date.now());
+      const signal = AbortSignal.timeout(SUMMARY_LOOKUP_TIMEOUT_MS);
+      const thread = await within(
+        safely(bb.sdk.threads.get({ signal, threadId })),
+        remainingMs()
+      );
+      if (!thread) throw new Error("Thread timing unavailable.");
+      const timing = await within(
+        currentTurnTiming(
+          bb,
+          threadId,
+          thread.runtime.displayStatus,
+          signal
+        ),
+        remainingMs()
+      );
+      return {
+        currentTurnCompletedAt: timing?.completedAt ?? null,
+        currentTurnStartedAt: timing?.startedAt ?? null,
+        status: thread.runtime.displayStatus
+      };
     }
   });
   bb.log.info("Thread hover cards loaded.");
@@ -14871,6 +14894,7 @@ function plugin(bb) {
 export {
   plugin as default,
   rpcContract,
-  threadSummarySchema
+  threadSummarySchema,
+  threadTimingSchema
 };
 //# sourceMappingURL=server.js.map
