@@ -9,10 +9,19 @@ type SummaryHandler = (input: {
 let summaryHandler: SummaryHandler | undefined;
 const logMessages: string[] = [];
 let displayStatus: "active" | "idle" = "active";
-let outlineCalls = 0;
-let assistantPreview = "  Finished   the hover card \n polish.  ";
+let projectId = "proj_1";
+let assistantOutput = "  **Finished**   the hover card \n- polish.  ";
+let threadGetFails = false;
 let turnStartedAt: number | null = 100;
 let turnCompletedAt: number | null = null;
+let environmentGetCalls = 0;
+let outputCalls = 0;
+let projectCalls = 0;
+let providerListCalls = 0;
+let providerModelCalls = 0;
+let pullRequestCalls = 0;
+let executionOptionsCalls = 0;
+const threadGetSignals: Array<AbortSignal | undefined> = [];
 const eventWaitInputs: Array<{
   afterSeq?: string;
   threadId: string;
@@ -37,6 +46,7 @@ const fakeBb = {
   sdk: {
     environments: {
       async get() {
+        environmentGetCalls += 1;
         return {
           branchName: "feature/hover-cards",
           isGitRepo: true,
@@ -44,6 +54,7 @@ const fakeBb = {
         };
       },
       async pullRequest() {
+        pullRequestCalls += 1;
         return {
           outcome: "available",
           pullRequest: {
@@ -59,6 +70,7 @@ const fakeBb = {
     },
     projects: {
       async get() {
+        projectCalls += 1;
         return {
           gitRemoteUrl: "git@github.com:acme/bb-plugin-thread-hover-cards.git",
           name: "Thread cards",
@@ -67,6 +79,7 @@ const fakeBb = {
     },
     providers: {
       async list() {
+        providerListCalls += 1;
         return [
           {
             displayName: "Codex",
@@ -76,6 +89,7 @@ const fakeBb = {
         ];
       },
       async models() {
+        providerModelCalls += 1;
         return {
           modelLoadError: null,
           models: [
@@ -91,27 +105,8 @@ const fakeBb = {
       },
     },
     threads: {
-      async conversationOutline() {
-        outlineCalls += 1;
-        return {
-          items: [
-            {
-              attachmentSummary: null,
-              id: "assistant_1",
-              preview: assistantPreview,
-              role: "assistant",
-            },
-            {
-              attachmentSummary: null,
-              id: "user_1",
-              preview: "A later user row must not replace agent output.",
-              role: "user",
-            },
-          ],
-          maxSeq: 20,
-        };
-      },
       async defaultExecutionOptions() {
+        executionOptionsCalls += 1;
         return {
           model: "gpt-5.6-sol",
           permissionMode: "full",
@@ -148,14 +143,20 @@ const fakeBb = {
           return null;
         },
       },
-      async get() {
+      async get(input: { signal?: AbortSignal }) {
+        threadGetSignals.push(input.signal);
+        if (threadGetFails) throw new Error("Thread lookup failed");
         return {
           environmentId: "env_1",
-          projectId: "proj_1",
+          projectId,
           providerId: "codex",
           runtime: { displayStatus },
           updatedAt: 123,
         };
+      },
+      async output() {
+        outputCalls += 1;
+        return { output: assistantOutput };
       },
       async timeline() {
         return {
@@ -195,7 +196,7 @@ const summary = await summaryHandler({ threadId: "thr_1" });
 assert.deepEqual(summary, {
   currentTurnCompletedAt: null,
   currentTurnStartedAt: 100,
-  latestAssistantMessage: "Finished the hover card\npolish.",
+  latestAssistantMessage: "**Finished** the hover card\n- polish.",
   permissionMode: "full",
   pullRequest: {
     kind: "available",
@@ -223,7 +224,15 @@ assert.deepEqual(summary, {
 assert.equal("permissionMode" in summary.provider, false);
 assert.equal(summary.permissionMode, "full");
 assert.equal("contextWindowUsage" in summary, false);
-assert.equal(outlineCalls, 1);
+assert.equal(outputCalls, 1);
+assert.equal(threadGetSignals.length, 1);
+assert.ok(threadGetSignals[0] instanceof AbortSignal);
+assert.equal(projectCalls, 1);
+assert.equal(providerListCalls, 1);
+assert.equal(providerModelCalls, 1);
+assert.equal(environmentGetCalls, 1);
+assert.equal(pullRequestCalls, 1);
+assert.equal(executionOptionsCalls, 1);
 assert.deepEqual(eventWaitInputs, [
   {
     afterSeq: "9",
@@ -236,6 +245,13 @@ assert.deepEqual(eventWaitInputs, [
 turnStartedAt = 200;
 const longTurnSummary = await summaryHandler({ threadId: "thr_1" });
 assert.equal(longTurnSummary.currentTurnStartedAt, 200);
+assert.equal(projectCalls, 1);
+assert.equal(providerListCalls, 1);
+assert.equal(providerModelCalls, 1);
+assert.equal(environmentGetCalls, 2);
+assert.equal(pullRequestCalls, 2);
+assert.equal(executionOptionsCalls, 2);
+assert.equal(outputCalls, 2);
 
 turnStartedAt = null;
 const missingTurnStartSummary = await summaryHandler({ threadId: "thr_1" });
@@ -250,20 +266,41 @@ assert.equal(idleSummary.currentTurnStartedAt, 100);
 assert.equal(idleSummary.currentTurnCompletedAt, 220);
 assert.equal(
   idleSummary.latestAssistantMessage,
-  "Finished the hover card\npolish.",
+  "**Finished** the hover card\n- polish.",
 );
 assert.equal(idleSummary.status, "idle");
-assert.equal(outlineCalls, 4);
+assert.equal(outputCalls, 4);
 assert.deepEqual(eventWaitInputs, []);
 
-assistantPreview = " \n\t ";
+assistantOutput = " \n\t ";
 turnStartedAt = 300;
 turnCompletedAt = null;
 const blankIdleSummary = await summaryHandler({ threadId: "thr_1" });
 assert.equal(blankIdleSummary.latestAssistantMessage, null);
 assert.equal(blankIdleSummary.currentTurnStartedAt, 300);
 assert.equal(blankIdleSummary.currentTurnCompletedAt, null);
-assert.equal(outlineCalls, 5);
+assert.equal(outputCalls, 5);
+assert.equal(projectCalls, 1);
+assert.equal(providerListCalls, 1);
+assert.equal(providerModelCalls, 1);
+
+for (let index = 2; index <= 129; index += 1) {
+  projectId = `proj_${index}`;
+  await summaryHandler({ threadId: `thr_${index}` });
+}
+assert.equal(projectCalls, 129);
+projectId = "proj_1";
+await summaryHandler({ threadId: "thr_1" });
+assert.equal(
+  projectCalls,
+  130,
+  "evicts the least-recently-used stable descriptor after 128 entries",
+);
+threadGetFails = true;
+await assert.rejects(
+  summaryHandler({ threadId: "thr_unavailable" }),
+  /Thread summary unavailable\./,
+);
 assert.deepEqual(logMessages, ["Thread hover cards loaded."]);
 assert.deepEqual(
   markdownPreview(

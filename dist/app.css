@@ -108,6 +108,9 @@
 }
 @layer utilities {
   @scope ([data-bb-plugin="thread-hover-cards"], [data-bb-plugin-root]:not([data-bb-plugin])) {
+    .collapse {
+      visibility: collapse;
+    }
     .visible {
       visibility: visible;
     }

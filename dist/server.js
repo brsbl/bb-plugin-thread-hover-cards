@@ -14625,6 +14625,42 @@ function isRunningStatus(status) {
 }
 var SUMMARY_LOOKUP_TIMEOUT_MS = 2500;
 var ACTIVE_TURN_EVENT_WAIT_MS = "1";
+var STABLE_DESCRIPTOR_CACHE_TTL_MS = 6e4;
+var STABLE_DESCRIPTOR_CACHE_MAX_ENTRIES = 128;
+var StableDescriptorCache = class {
+  entries = /* @__PURE__ */ new Map();
+  pending = /* @__PURE__ */ new Map();
+  async get(key, load) {
+    const now = Date.now();
+    const cached2 = this.entries.get(key);
+    if (cached2 && cached2.expiresAt > now) {
+      this.entries.delete(key);
+      this.entries.set(key, cached2);
+      return cached2.value;
+    }
+    if (cached2) this.entries.delete(key);
+    const pending = this.pending.get(key);
+    if (pending) return await pending;
+    const request = load().then((value) => {
+      if (value !== null) {
+        this.entries.set(key, {
+          expiresAt: Date.now() + STABLE_DESCRIPTOR_CACHE_TTL_MS,
+          value
+        });
+        while (this.entries.size > STABLE_DESCRIPTOR_CACHE_MAX_ENTRIES) {
+          const oldestKey = this.entries.keys().next().value;
+          if (oldestKey === void 0) break;
+          this.entries.delete(oldestKey);
+        }
+      }
+      return value;
+    }).finally(() => {
+      if (this.pending.get(key) === request) this.pending.delete(key);
+    });
+    this.pending.set(key, request);
+    return await request;
+  }
+};
 async function currentTurnTiming(bb, threadId, status, signal) {
   if (!isRunningStatus(status) && status !== "idle") {
     return { completedAt: null, startedAt: null };
@@ -14678,10 +14714,18 @@ var PULL_REQUEST_SIGNALS = {
   ready_to_merge: "Ready to merge"
 };
 function plugin(bb) {
+  const stableDescriptors = new StableDescriptorCache();
   bb.rpc.register(rpcContract, {
     async threadSummary({ threadId }) {
-      const thread = await bb.sdk.threads.get({ threadId });
+      const deadlineAt = Date.now() + SUMMARY_LOOKUP_TIMEOUT_MS;
+      const remainingMs = () => Math.max(1, deadlineAt - Date.now());
       const signal = AbortSignal.timeout(SUMMARY_LOOKUP_TIMEOUT_MS);
+      const thread = await within(
+        safely(bb.sdk.threads.get({ signal, threadId })),
+        remainingMs()
+      );
+      if (!thread) throw new Error("Thread summary unavailable.");
+      const providerScope = thread.environmentId ? `environment:${thread.environmentId}` : "host:default";
       const [
         project,
         environment,
@@ -14689,14 +14733,17 @@ function plugin(bb) {
         executionOptions,
         providers,
         providerModels,
-        conversationOutline,
+        threadOutput,
         turnTiming
       ] = await Promise.all([
-        within(
-          safely(
-            bb.sdk.projects.get({ projectId: thread.projectId, signal })
-          ),
-          SUMMARY_LOOKUP_TIMEOUT_MS
+        stableDescriptors.get(
+          `project:${thread.projectId}`,
+          () => within(
+            safely(
+              bb.sdk.projects.get({ projectId: thread.projectId, signal })
+            ),
+            remainingMs()
+          )
         ),
         thread.environmentId ? within(
           safely(
@@ -14705,7 +14752,7 @@ function plugin(bb) {
               signal
             })
           ),
-          SUMMARY_LOOKUP_TIMEOUT_MS
+          remainingMs()
         ) : Promise.resolve(null),
         thread.environmentId ? within(
           safely(
@@ -14714,37 +14761,43 @@ function plugin(bb) {
               signal
             })
           ),
-          SUMMARY_LOOKUP_TIMEOUT_MS
+          remainingMs()
         ) : Promise.resolve(null),
         within(
           safely(
             bb.sdk.threads.defaultExecutionOptions({ signal, threadId })
           ),
-          SUMMARY_LOOKUP_TIMEOUT_MS
+          remainingMs()
+        ),
+        stableDescriptors.get(
+          `providers:${providerScope}`,
+          () => within(
+            safely(
+              bb.sdk.providers.list(
+                thread.environmentId ? { environmentId: thread.environmentId, signal } : { signal }
+              )
+            ),
+            remainingMs()
+          )
+        ),
+        stableDescriptors.get(
+          `provider-models:${providerScope}:${thread.providerId}`,
+          () => within(
+            safely(
+              bb.sdk.providers.models(
+                thread.environmentId ? {
+                  environmentId: thread.environmentId,
+                  providerId: thread.providerId,
+                  signal
+                } : { providerId: thread.providerId, signal }
+              )
+            ),
+            remainingMs()
+          )
         ),
         within(
-          safely(
-            bb.sdk.providers.list(
-              thread.environmentId ? { environmentId: thread.environmentId, signal } : { signal }
-            )
-          ),
-          SUMMARY_LOOKUP_TIMEOUT_MS
-        ),
-        within(
-          safely(
-            bb.sdk.providers.models(
-              thread.environmentId ? {
-                environmentId: thread.environmentId,
-                providerId: thread.providerId,
-                signal
-              } : { providerId: thread.providerId, signal }
-            )
-          ),
-          SUMMARY_LOOKUP_TIMEOUT_MS
-        ),
-        within(
-          safely(bb.sdk.threads.conversationOutline({ signal, threadId })),
-          SUMMARY_LOOKUP_TIMEOUT_MS
+          safely(bb.sdk.threads.output({ signal, threadId })),
+          remainingMs()
         ),
         within(
           currentTurnTiming(
@@ -14753,16 +14806,15 @@ function plugin(bb) {
             thread.runtime.displayStatus,
             signal
           ),
-          SUMMARY_LOOKUP_TIMEOUT_MS
+          remainingMs()
         )
       ]);
       const isGitRepository = environment?.isGitRepo ?? project?.gitRemoteUrl != null;
       const provider = providers?.find(
         (candidate) => candidate.id === thread.providerId
       );
-      const latestAssistantPreview = conversationOutline?.items.filter((item) => item.role === "assistant").at(-1)?.preview;
       const normalizedAssistantMessage = normalizeMessage(
-        latestAssistantPreview ?? ""
+        threadOutput?.output ?? ""
       );
       const selectedModel = executionOptions?.model;
       const model = [

@@ -9,6 +9,8 @@ const dom = new JSDOM(
     <div class="group/thread-row">
       <a data-sidebar-thread-id="thr_1" href="/threads/thr_1">Thread</a>
     </div>
+    <button id="css-hidden-control" style="display: none">Hidden control</button>
+    <button id="thread-row-successor">Next control</button>
   </body>`,
   { url: "http://localhost" },
 );
@@ -124,8 +126,12 @@ window.document.dispatchEvent(
   new window.Event("DOMContentLoaded", { bubbles: true }),
 );
 
-const trigger = window.document.querySelector("[data-sidebar-thread-id]");
+let trigger = window.document.querySelector("[data-sidebar-thread-id]");
 assert.ok(trigger);
+const threadRowSuccessor = window.document.getElementById(
+  "thread-row-successor",
+);
+assert.ok(threadRowSuccessor);
 
 const style = window.document.getElementById("bb-thread-hover-card-styles");
 assert.ok(style);
@@ -214,10 +220,15 @@ Object.defineProperties(pointerOver, {
   relatedTarget: { value: null },
 });
 trigger.dispatchEvent(pointerOver);
-await new Promise((resolve) => setTimeout(resolve, 120));
+await new Promise((resolve) => setTimeout(resolve, 70));
 
 assert.equal(window.document.getElementById("bb-thread-hover-card"), null);
-await new Promise((resolve) => setTimeout(resolve, 60));
+assert.deepEqual(
+  requestBodies,
+  [{ threadId: "thr_1" }],
+  "prefetches after hover intent before the card opens",
+);
+await new Promise((resolve) => setTimeout(resolve, 110));
 
 const card = window.document.getElementById("bb-thread-hover-card");
 assert.ok(card);
@@ -438,7 +449,96 @@ assert.equal(window.document.activeElement, trigger);
 trigger.dispatchEvent(
   new window.KeyboardEvent("keydown", { bubbles: true, key: "Tab" }),
 );
+assert.equal(window.document.activeElement, pullRequestLink);
 pullRequestLink.dispatchEvent(
+  new window.KeyboardEvent("keydown", { bubbles: true, key: "Tab" }),
+);
+assert.equal(card.hidden, true);
+assert.equal(window.document.activeElement, threadRowSuccessor);
+
+trigger.focus();
+await new Promise((resolve) => setTimeout(resolve, 20));
+let rerenderedPullRequestLink = card.querySelector(
+  ".bb-thread-hover-card__pr-link",
+);
+assert.ok(rerenderedPullRequestLink);
+trigger.dispatchEvent(
+  new window.KeyboardEvent("keydown", { bubbles: true, key: "Tab" }),
+);
+const shiftTabReplacement = trigger.cloneNode(true);
+shiftTabReplacement.removeAttribute("aria-describedby");
+trigger.replaceWith(shiftTabReplacement);
+trigger = shiftTabReplacement;
+rerenderedPullRequestLink.dispatchEvent(
+  new window.KeyboardEvent("keydown", {
+    bubbles: true,
+    key: "Tab",
+    shiftKey: true,
+  }),
+);
+assert.equal(
+  window.document.activeElement,
+  trigger,
+  "Shift+Tab resolves the current thread trigger after a row rerender",
+);
+
+trigger.dispatchEvent(
+  new window.KeyboardEvent("keydown", { bubbles: true, key: "Tab" }),
+);
+const escapeReplacement = trigger.cloneNode(true);
+escapeReplacement.removeAttribute("aria-describedby");
+trigger.replaceWith(escapeReplacement);
+trigger = escapeReplacement;
+rerenderedPullRequestLink.dispatchEvent(
+  new window.KeyboardEvent("keydown", { bubbles: true, key: "Escape" }),
+);
+assert.equal(card.hidden, true);
+assert.equal(
+  window.document.activeElement,
+  trigger,
+  "Escape restores focus to the replacement thread trigger",
+);
+
+threadRowSuccessor.focus();
+trigger.focus();
+await new Promise((resolve) => setTimeout(resolve, 20));
+rerenderedPullRequestLink = card.querySelector(
+  ".bb-thread-hover-card__pr-link",
+);
+assert.ok(rerenderedPullRequestLink);
+trigger.dispatchEvent(
+  new window.KeyboardEvent("keydown", { bubbles: true, key: "Tab" }),
+);
+assert.equal(window.document.activeElement, rerenderedPullRequestLink);
+const triggerRow = trigger.parentElement;
+assert.ok(triggerRow);
+trigger.remove();
+rerenderedPullRequestLink.dispatchEvent(
+  new window.KeyboardEvent("keydown", { bubbles: true, key: "Tab" }),
+);
+assert.equal(card.hidden, true);
+assert.equal(
+  window.document.activeElement,
+  threadRowSuccessor,
+  "forward Tab uses the saved native successor when the row is removed",
+);
+trigger = window.document.createElement("a");
+trigger.dataset.sidebarThreadId = "thr_1";
+trigger.href = "/threads/thr_1";
+trigger.textContent = "Thread";
+triggerRow.append(trigger);
+
+trigger.focus();
+await new Promise((resolve) => setTimeout(resolve, 20));
+const reopenedPullRequestLink = card.querySelector(
+  ".bb-thread-hover-card__pr-link",
+);
+assert.ok(reopenedPullRequestLink);
+trigger.dispatchEvent(
+  new window.KeyboardEvent("keydown", { bubbles: true, key: "Tab" }),
+);
+assert.equal(window.document.activeElement, reopenedPullRequestLink);
+reopenedPullRequestLink.dispatchEvent(
   new window.KeyboardEvent("keydown", { bubbles: true, key: "Escape" }),
 );
 assert.equal(card.hidden, true);
@@ -487,7 +587,7 @@ Object.defineProperties(quickPointerOver, {
   relatedTarget: { value: null },
 });
 trigger.dispatchEvent(quickPointerOver);
-await new Promise((resolve) => setTimeout(resolve, 50));
+await new Promise((resolve) => setTimeout(resolve, 30));
 
 const quickPointerOut = new window.Event("pointerout", { bubbles: true });
 Object.defineProperties(quickPointerOut, {
@@ -763,6 +863,68 @@ assert.ok(
 assert.deepEqual(requestBodies.at(-1), {
   threadId: "thr_done_without_completion",
 });
+
+const lruTriggers = [];
+for (const threadId of [
+  "thr_lru_old",
+  "thr_lru_recent",
+  ...Array.from({ length: 126 }, (_, index) => `thr_lru_fill_${index}`),
+]) {
+  const row = window.document.createElement("div");
+  row.className = "group/thread-row";
+  const lruTrigger = window.document.createElement("a");
+  lruTrigger.dataset.sidebarThreadId = threadId;
+  lruTrigger.href = `/threads/${threadId}`;
+  lruTrigger.textContent = threadId;
+  row.append(lruTrigger);
+  window.document.body.insertBefore(row, threadRowSuccessor);
+  lruTriggers.push(lruTrigger);
+}
+
+for (const lruTrigger of lruTriggers) {
+  lruTrigger.focus();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+await new Promise((resolve) => setTimeout(resolve, 20));
+
+const oldRequestsBefore = requestBodies.filter(
+  ({ threadId }) => threadId === "thr_lru_old",
+).length;
+const recentRequestsBefore = requestBodies.filter(
+  ({ threadId }) => threadId === "thr_lru_recent",
+).length;
+
+lruTriggers[1].focus();
+await new Promise((resolve) => setTimeout(resolve, 20));
+assert.equal(
+  requestBodies.filter(({ threadId }) => threadId === "thr_lru_recent").length,
+  recentRequestsBefore,
+);
+
+const evictionRow = window.document.createElement("div");
+evictionRow.className = "group/thread-row";
+const evictionTrigger = window.document.createElement("a");
+evictionTrigger.dataset.sidebarThreadId = "thr_lru_eviction";
+evictionTrigger.href = "/threads/thr_lru_eviction";
+evictionTrigger.textContent = "thr_lru_eviction";
+evictionRow.append(evictionTrigger);
+window.document.body.insertBefore(evictionRow, threadRowSuccessor);
+evictionTrigger.focus();
+await new Promise((resolve) => setTimeout(resolve, 20));
+
+lruTriggers[1].focus();
+await new Promise((resolve) => setTimeout(resolve, 20));
+assert.equal(
+  requestBodies.filter(({ threadId }) => threadId === "thr_lru_recent").length,
+  recentRequestsBefore,
+);
+
+lruTriggers[0].focus();
+await new Promise((resolve) => setTimeout(resolve, 20));
+assert.equal(
+  requestBodies.filter(({ threadId }) => threadId === "thr_lru_old").length,
+  oldRequestsBefore + 1,
+);
 
 globalThis.__bbThreadHoverCards?.dispose();
 assert.equal(window.document.getElementById("bb-thread-hover-card-styles"), null);

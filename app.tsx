@@ -28,8 +28,19 @@ const PLUGIN_CSS_SELECTOR =
 const THREAD_TRIGGER_SELECTOR = "a[data-sidebar-thread-id]";
 const THREAD_ROW_SELECTOR = ".group\\/thread-row";
 const OPEN_DELAY_MS = 150;
+const PREFETCH_DELAY_MS = 50;
 const CLOSE_DELAY_MS = 120;
 const CACHE_TTL_MS = 10_000;
+const CACHE_MAX_ENTRIES = 128;
+const TABBABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled]):not([type=\"hidden\"])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "[contenteditable=\"true\"]",
+  "[tabindex]",
+].join(",");
 
 interface CachedSummary {
   fetchedAt: number;
@@ -712,11 +723,14 @@ function renderSummary(card: HTMLElement, summary: ThreadSummary): void {
 function installHoverCards(): HoverCardController {
   let card: HTMLDivElement | null = null;
   let activeTrigger: HTMLAnchorElement | null = null;
+  let activeThreadId: string | null = null;
   let openTimer: ReturnType<typeof setTimeout> | null = null;
+  let prefetchTimer: ReturnType<typeof setTimeout> | null = null;
   let closeTimer: ReturnType<typeof setTimeout> | null = null;
   let timeTimer: ReturnType<typeof setInterval> | null = null;
   let disposed = false;
   let requestGeneration = 0;
+  let forwardTabTarget: HTMLElement | null = null;
   const cache = new Map<string, CachedSummary>();
   const pending = new Map<string, Promise<ThreadSummary>>();
   const style = element("style", "");
@@ -743,10 +757,11 @@ function installHoverCards(): HoverCardController {
   }
 
   function positionCard(): void {
-    if (!card || !activeTrigger || card.hidden) return;
+    const trigger = resolveActiveTrigger();
+    if (!card || !trigger || card.hidden) return;
 
     const anchor =
-      activeTrigger.closest<HTMLElement>(THREAD_ROW_SELECTOR) ?? activeTrigger;
+      trigger.closest<HTMLElement>(THREAD_ROW_SELECTOR) ?? trigger;
     const anchorRect = anchor.getBoundingClientRect();
     const cardRect = card.getBoundingClientRect();
     const margin = 8;
@@ -765,12 +780,117 @@ function installHoverCards(): HoverCardController {
     card.style.top = `${Math.round(top)}px`;
   }
 
+  function cachedSummary(threadId: string): CachedSummary | undefined {
+    const cached = cache.get(threadId);
+    if (!cached) return undefined;
+    cache.delete(threadId);
+    cache.set(threadId, cached);
+    return cached;
+  }
+
+  function cacheSummary(threadId: string, summary: ThreadSummary): void {
+    cache.delete(threadId);
+    cache.set(threadId, { fetchedAt: Date.now(), summary });
+    while (cache.size > CACHE_MAX_ENTRIES) {
+      const oldestThreadId = cache.keys().next().value;
+      if (oldestThreadId === undefined) break;
+      cache.delete(oldestThreadId);
+    }
+  }
+
+  function requestSummary(threadId: string): Promise<ThreadSummary> {
+    const existing = pending.get(threadId);
+    if (existing) return existing;
+
+    const request = fetchSummary(threadId)
+      .then((summary) => {
+        cacheSummary(threadId, summary);
+        return summary;
+      })
+      .finally(() => pending.delete(threadId));
+    pending.set(threadId, request);
+    return request;
+  }
+
+  function prefetchSummary(threadId: string): void {
+    const cached = cachedSummary(threadId);
+    if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) return;
+    void requestSummary(threadId).catch(() => undefined);
+  }
+
+  function resolveActiveTrigger(): HTMLAnchorElement | null {
+    if (!activeThreadId) return null;
+    if (
+      activeTrigger?.isConnected &&
+      threadIdFor(activeTrigger) === activeThreadId
+    ) {
+      return activeTrigger;
+    }
+
+    activeTrigger?.removeAttribute("aria-describedby");
+    activeTrigger =
+      Array.from(
+        document.querySelectorAll<HTMLAnchorElement>(THREAD_TRIGGER_SELECTOR),
+      ).find((candidate) => threadIdFor(candidate) === activeThreadId) ?? null;
+    activeTrigger?.setAttribute("aria-describedby", CARD_ID);
+    return activeTrigger;
+  }
+
+  function isTabbable(candidate: HTMLElement): boolean {
+    if (
+      !candidate.isConnected ||
+      candidate.tabIndex < 0 ||
+      candidate.closest("[hidden], [inert], [aria-hidden=\"true\"]") ||
+      card?.contains(candidate)
+    ) {
+      return false;
+    }
+
+    for (
+      let ancestor: HTMLElement | null = candidate;
+      ancestor;
+      ancestor = ancestor.parentElement
+    ) {
+      const computed = window.getComputedStyle(ancestor);
+      if (
+        computed.display === "none" ||
+        computed.visibility === "hidden" ||
+        computed.visibility === "collapse"
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function tabbableCandidates(): HTMLElement[] {
+    return Array.from(
+      document.querySelectorAll<HTMLElement>(TABBABLE_SELECTOR),
+    )
+      .filter(isTabbable)
+      .sort((left, right) => {
+        const leftOrder =
+          left.tabIndex > 0 ? left.tabIndex : Number.POSITIVE_INFINITY;
+        const rightOrder =
+          right.tabIndex > 0 ? right.tabIndex : Number.POSITIVE_INFINITY;
+        return leftOrder - rightOrder;
+      });
+  }
+
+  function nextTabbableAfter(trigger: HTMLElement): HTMLElement | null {
+    const candidates = tabbableCandidates();
+    const triggerIndex = candidates.indexOf(trigger);
+    if (triggerIndex < 0) return null;
+    return candidates[(triggerIndex + 1) % candidates.length] ?? null;
+  }
+
   function showCard(trigger: HTMLAnchorElement): void {
     const threadId = threadIdFor(trigger);
     if (!threadId || disposed) return;
 
     activeTrigger?.removeAttribute("aria-describedby");
     activeTrigger = trigger;
+    activeThreadId = threadId;
     trigger.setAttribute("aria-describedby", CARD_ID);
     requestGeneration += 1;
     const generation = requestGeneration;
@@ -784,26 +904,20 @@ function installHoverCards(): HoverCardController {
       if (card && !card.hidden) refreshRunTime(card);
     }, 1_000);
 
-    const cached = cache.get(threadId);
+    const cached = cachedSummary(threadId);
     if (cached) renderSummary(hoverCard, cached.summary);
     else renderLoading(hoverCard);
     requestAnimationFrame(positionCard);
 
     if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) return;
 
-    let request = pending.get(threadId);
-    if (!request) {
-      request = fetchSummary(threadId).finally(() => pending.delete(threadId));
-      pending.set(threadId, request);
-    }
-
-    void request
+    void requestSummary(threadId)
       .then((summary) => {
-        cache.set(threadId, { fetchedAt: Date.now(), summary });
         if (
           disposed ||
           generation !== requestGeneration ||
-          activeTrigger !== trigger
+          activeThreadId !== threadId ||
+          !resolveActiveTrigger()
         ) {
           return;
         }
@@ -816,7 +930,7 @@ function installHoverCards(): HoverCardController {
             hoverCard.querySelector<HTMLAnchorElement>(
               ".bb-thread-hover-card__pr-link",
             );
-          (replacementPullRequestLink ?? activeTrigger)?.focus();
+          (replacementPullRequestLink ?? resolveActiveTrigger())?.focus();
         }
         requestAnimationFrame(positionCard);
       })
@@ -825,7 +939,8 @@ function installHoverCards(): HoverCardController {
           !cached &&
           !disposed &&
           generation === requestGeneration &&
-          activeTrigger === trigger
+          activeThreadId === threadId &&
+          resolveActiveTrigger()
         ) {
           renderError(hoverCard);
           requestAnimationFrame(positionCard);
@@ -834,9 +949,14 @@ function installHoverCards(): HoverCardController {
   }
 
   function cancelOpen(): void {
-    if (!openTimer) return;
-    clearTimeout(openTimer);
-    openTimer = null;
+    if (openTimer) {
+      clearTimeout(openTimer);
+      openTimer = null;
+    }
+    if (prefetchTimer) {
+      clearTimeout(prefetchTimer);
+      prefetchTimer = null;
+    }
   }
 
   function cancelClose(): void {
@@ -849,6 +969,13 @@ function installHoverCards(): HoverCardController {
     cancelOpen();
     cancelClose();
     if (activeTrigger === trigger && card && !card.hidden) return;
+    const threadId = threadIdFor(trigger);
+    if (threadId && delay > 0) {
+      prefetchTimer = setTimeout(() => {
+        prefetchTimer = null;
+        prefetchSummary(threadId);
+      }, Math.min(PREFETCH_DELAY_MS, delay));
+    }
     openTimer = setTimeout(() => {
       openTimer = null;
       showCard(trigger);
@@ -861,6 +988,8 @@ function installHoverCards(): HoverCardController {
     requestGeneration += 1;
     activeTrigger?.removeAttribute("aria-describedby");
     activeTrigger = null;
+    activeThreadId = null;
+    forwardTabTarget = null;
     if (timeTimer) {
       clearInterval(timeTimer);
       timeTimer = null;
@@ -937,19 +1066,21 @@ function installHoverCards(): HoverCardController {
   }
 
   function onKeyDown(event: KeyboardEvent): void {
-    if (!activeTrigger) return;
+    if (!activeThreadId) return;
 
+    const trigger = resolveActiveTrigger();
     const pullRequestLink =
       card?.querySelector<HTMLAnchorElement>(".bb-thread-hover-card__pr-link") ??
       null;
     if (
       event.key === "Tab" &&
       !event.shiftKey &&
-      event.target === activeTrigger &&
+      event.target === trigger &&
       pullRequestLink
     ) {
       event.preventDefault();
       cancelClose();
+      forwardTabTarget = trigger ? nextTabbableAfter(trigger) : null;
       pullRequestLink.focus();
       return;
     }
@@ -960,16 +1091,46 @@ function installHoverCards(): HoverCardController {
     ) {
       event.preventDefault();
       cancelClose();
-      activeTrigger.focus();
+      if (trigger) {
+        trigger.focus();
+      } else {
+        const fallback = forwardTabTarget?.isConnected
+          ? forwardTabTarget
+          : tabbableCandidates()[0];
+        closeCard();
+        fallback?.focus();
+      }
+      return;
+    }
+    if (
+      event.key === "Tab" &&
+      !event.shiftKey &&
+      event.target === pullRequestLink
+    ) {
+      event.preventDefault();
+      const target =
+        forwardTabTarget && isTabbable(forwardTabTarget)
+          ? forwardTabTarget
+          : trigger
+            ? nextTabbableAfter(trigger)
+            : tabbableCandidates()[0];
+      closeCard();
+      target?.focus();
       return;
     }
     if (event.key === "Escape") {
-      const trigger = activeTrigger;
       const restoreFocus =
         event.target instanceof Node && card?.contains(event.target);
       if (restoreFocus) {
         event.preventDefault();
-        trigger.focus();
+        const fallback =
+          trigger ??
+          (forwardTabTarget && isTabbable(forwardTabTarget)
+            ? forwardTabTarget
+            : tabbableCandidates()[0]);
+        fallback?.focus();
+        closeCard();
+        return;
       }
       closeCard();
     }

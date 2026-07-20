@@ -149,6 +149,53 @@ interface TurnTiming {
 
 const SUMMARY_LOOKUP_TIMEOUT_MS = 2_500;
 const ACTIVE_TURN_EVENT_WAIT_MS = "1";
+const STABLE_DESCRIPTOR_CACHE_TTL_MS = 60_000;
+const STABLE_DESCRIPTOR_CACHE_MAX_ENTRIES = 128;
+
+class StableDescriptorCache {
+  private readonly entries = new Map<
+    string,
+    { expiresAt: number; value: unknown }
+  >();
+  private readonly pending = new Map<string, Promise<unknown | null>>();
+
+  async get<T>(key: string, load: () => Promise<T | null>): Promise<T | null> {
+    const now = Date.now();
+    const cached = this.entries.get(key);
+    if (cached && cached.expiresAt > now) {
+      this.entries.delete(key);
+      this.entries.set(key, cached);
+      return cached.value as T;
+    }
+    if (cached) this.entries.delete(key);
+
+    const pending = this.pending.get(key);
+    if (pending) return (await pending) as T | null;
+
+    const request = load()
+      .then((value) => {
+        if (value !== null) {
+          this.entries.set(key, {
+            expiresAt: Date.now() + STABLE_DESCRIPTOR_CACHE_TTL_MS,
+            value,
+          });
+          while (this.entries.size > STABLE_DESCRIPTOR_CACHE_MAX_ENTRIES) {
+            const oldestKey = this.entries.keys().next().value as
+              | string
+              | undefined;
+            if (oldestKey === undefined) break;
+            this.entries.delete(oldestKey);
+          }
+        }
+        return value;
+      })
+      .finally(() => {
+        if (this.pending.get(key) === request) this.pending.delete(key);
+      });
+    this.pending.set(key, request);
+    return await request;
+  }
+}
 
 async function currentTurnTiming(
   bb: BbPluginApi,
@@ -219,10 +266,23 @@ const PULL_REQUEST_SIGNALS = {
 } as const;
 
 export default function plugin(bb: BbPluginApi): void {
+  const stableDescriptors = new StableDescriptorCache();
+
   bb.rpc.register(rpcContract, {
     async threadSummary({ threadId }) {
-      const thread = await bb.sdk.threads.get({ threadId });
+      const deadlineAt = Date.now() + SUMMARY_LOOKUP_TIMEOUT_MS;
+      const remainingMs = (): number =>
+        Math.max(1, deadlineAt - Date.now());
       const signal = AbortSignal.timeout(SUMMARY_LOOKUP_TIMEOUT_MS);
+      const thread = await within(
+        safely(bb.sdk.threads.get({ signal, threadId })),
+        remainingMs(),
+      );
+      if (!thread) throw new Error("Thread summary unavailable.");
+
+      const providerScope = thread.environmentId
+        ? `environment:${thread.environmentId}`
+        : "host:default";
       const [
         project,
         environment,
@@ -230,15 +290,17 @@ export default function plugin(bb: BbPluginApi): void {
         executionOptions,
         providers,
         providerModels,
-        conversationOutline,
+        threadOutput,
         turnTiming,
       ] =
         await Promise.all([
-          within(
-            safely(
-              bb.sdk.projects.get({ projectId: thread.projectId, signal }),
+          stableDescriptors.get(`project:${thread.projectId}`, () =>
+            within(
+              safely(
+                bb.sdk.projects.get({ projectId: thread.projectId, signal }),
+              ),
+              remainingMs(),
             ),
-            SUMMARY_LOOKUP_TIMEOUT_MS,
           ),
           thread.environmentId
             ? within(
@@ -248,7 +310,7 @@ export default function plugin(bb: BbPluginApi): void {
                     signal,
                   }),
                 ),
-                SUMMARY_LOOKUP_TIMEOUT_MS,
+                remainingMs(),
               )
             : Promise.resolve(null),
           thread.environmentId
@@ -259,42 +321,48 @@ export default function plugin(bb: BbPluginApi): void {
                     signal,
                   }),
                 ),
-                SUMMARY_LOOKUP_TIMEOUT_MS,
+                remainingMs(),
               )
             : Promise.resolve(null),
           within(
             safely(
               bb.sdk.threads.defaultExecutionOptions({ signal, threadId }),
             ),
-            SUMMARY_LOOKUP_TIMEOUT_MS,
+            remainingMs(),
           ),
-          within(
-            safely(
-              bb.sdk.providers.list(
-                thread.environmentId
-                  ? { environmentId: thread.environmentId, signal }
-                  : { signal },
+          stableDescriptors.get(`providers:${providerScope}`, () =>
+            within(
+              safely(
+                bb.sdk.providers.list(
+                  thread.environmentId
+                    ? { environmentId: thread.environmentId, signal }
+                    : { signal },
+                ),
               ),
+              remainingMs(),
             ),
-            SUMMARY_LOOKUP_TIMEOUT_MS,
           ),
-          within(
-            safely(
-              bb.sdk.providers.models(
-                thread.environmentId
-                  ? {
-                      environmentId: thread.environmentId,
-                      providerId: thread.providerId,
-                      signal,
-                    }
-                  : { providerId: thread.providerId, signal },
+          stableDescriptors.get(
+            `provider-models:${providerScope}:${thread.providerId}`,
+            () =>
+              within(
+                safely(
+                  bb.sdk.providers.models(
+                    thread.environmentId
+                      ? {
+                          environmentId: thread.environmentId,
+                          providerId: thread.providerId,
+                          signal,
+                        }
+                      : { providerId: thread.providerId, signal },
+                  ),
+                ),
+                remainingMs(),
               ),
-            ),
-            SUMMARY_LOOKUP_TIMEOUT_MS,
           ),
           within(
-            safely(bb.sdk.threads.conversationOutline({ signal, threadId })),
-            SUMMARY_LOOKUP_TIMEOUT_MS,
+            safely(bb.sdk.threads.output({ signal, threadId })),
+            remainingMs(),
           ),
           within(
             currentTurnTiming(
@@ -303,7 +371,7 @@ export default function plugin(bb: BbPluginApi): void {
               thread.runtime.displayStatus,
               signal,
             ),
-            SUMMARY_LOOKUP_TIMEOUT_MS,
+            remainingMs(),
           ),
         ]);
 
@@ -312,11 +380,8 @@ export default function plugin(bb: BbPluginApi): void {
       const provider = providers?.find(
         (candidate) => candidate.id === thread.providerId,
       );
-      const latestAssistantPreview = conversationOutline?.items
-        .filter((item) => item.role === "assistant")
-        .at(-1)?.preview;
       const normalizedAssistantMessage = normalizeMessage(
-        latestAssistantPreview ?? "",
+        threadOutput?.output ?? "",
       );
       const selectedModel = executionOptions?.model;
       const model = [
